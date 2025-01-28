@@ -1,0 +1,34 @@
+[package]
+name = "sqisign_rs"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+rand_core = "0.6"
+hex = "0.4.3"
+num-bigint = "0.4.3"
+sha2 = "0.10.2"
+sha3 = "0.10.6"
+
+[dev-dependencies]
+criterion = { version = "0.4", features = ["html_reports"] }
+
+# A benchmark for the cost of multiplications, squares and inversions for the
+# three base fields. Used to compute optimat strategies.
+
+[[bench]]
+name = "fp255_arithmetic"
+path = "benches/fp255.rs"
+harness = false
+
+[[bench]]
+name = "fp251_arithmetic"
+path = "benches/fp251.rs"
+harness = false
+
+[[bench]]
+name = "fp251_arithmetic_generic"
+path = "benches/fp251_generic.rs"
+harness = false
