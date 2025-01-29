@@ -18,6 +18,7 @@
 // Macro expectations:
 // A finite field Fp = GF(p) with p = 3 mod 4
 // NQR_RE a Fp type such that (i + NQR_RE) is a NQR
+#[macro_export]
 macro_rules! define_fp2_core {
     (
         type_name = $name:ident,
@@ -1075,8 +1076,6 @@ macro_rules! define_fp2_core {
         }
     };
 } // End of macro: define_fp2_core
-
-pub(crate) use define_fp2_core;
 
 // ========================================================================
 

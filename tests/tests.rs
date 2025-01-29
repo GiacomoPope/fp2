@@ -1,5 +1,5 @@
-#![allow(non_snake_case)]
-#![allow(non_upper_case_globals)]
+use fp2_rs::define_fp2_core;
+use fp2_rs::define_fp_core;
 
 // ========================================================
 // Definitions of base fields GF(p) = Z / pZ
@@ -11,7 +11,7 @@
 // Contents are opaque, all functions are constant-time.
 // Macro input generated with scripts/gen_fp.sage
 // p = 2^74 * 3^41 - 1
-crate::finitefield::fp_gen::define_fp_core!(
+define_fp_core!(
     type_name = Fp139,
     words = 3_usize,
     bit_len = 139_usize,
@@ -39,7 +39,7 @@ crate::finitefield::fp_gen::define_fp_core!(
 // Contents are opaque, all functions are constant-time.
 // Macro input generated with scripts/gen_fp.sage
 // p = 5*2^248 - 1
-crate::finitefield::fp_gen::define_fp_core!(
+define_fp_core!(
     type_name = Fp251,
     words = 4_usize,
     bit_len = 251_usize,
@@ -127,18 +127,18 @@ crate::finitefield::fp_gen::define_fp_core!(
 // Fp139Ext: a finite field element GF(p^2) with modulus x^2 + 1.
 // Contents are opaque, all functions are constant-time.
 // Macro input generated with scripts/gen_fp.sage
-crate::finitefield::fp2_gen::define_fp2_core!(
+define_fp2_core!(
     type_name = Fp139Ext,
-    base_field = crate::fields::Fp139,
+    base_field = Fp139,
     nqr_re = [0x0143B0718BD916DA, 0x349A32A6E5E6C800, 0x000000000000043B]
 );
 
 // Fp251Ext: a finite field element GF(p^2) with modulus x^2 + 1.
 // Contents are opaque, all functions are constant-time.
 // Macro input generated with scripts/gen_fp.sage
-crate::finitefield::fp2_gen::define_fp2_core!(
+define_fp2_core!(
     type_name = Fp251Ext,
-    base_field = crate::fields::Fp251,
+    base_field = Fp251,
     nqr_re = [
         0x0000000000000100,
         0x0000000000000000,
@@ -149,18 +149,12 @@ crate::finitefield::fp2_gen::define_fp2_core!(
 
 #[cfg(test)]
 mod fp139_tests {
-    use crate::fields::Fp139;
-    use crate::fields::Fp139Ext;
-
-    crate::finitefield::fp_gen::define_fp_tests!(Fp139);
-    crate::finitefield::fp2_gen::define_fp2_tests!(Fp139, Fp139Ext);
+    fp2_rs::fp_gen::define_fp_tests!(Fp139);
+    fp2_rs::fp2_gen::define_fp2_tests!(Fp139, Fp139Ext);
 }
 
 #[cfg(test)]
 mod fp251_tests {
-    use crate::fields::Fp251;
-    use crate::fields::Fp251Ext;
-
-    crate::finitefield::fp_gen::define_fp_tests!(Fp251);
-    crate::finitefield::fp2_gen::define_fp2_tests!(Fp251, Fp251Ext);
+    fp2_rs::fp_gen::define_fp_tests!(Fp251);
+    fp2_rs::fp2_gen::define_fp2_tests!(Fp251, Fp251Ext);
 }

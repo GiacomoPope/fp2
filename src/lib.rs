@@ -1,5 +1,6 @@
 #![allow(non_snake_case)]
 #![allow(non_upper_case_globals)]
 
-pub mod fields;
-pub mod finitefield;
+pub mod fp2_gen;
+pub mod fp_gen;
+mod utils64;
