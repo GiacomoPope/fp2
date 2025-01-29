@@ -69,6 +69,7 @@ macro_rules! define_fp2_core {
             };
 
             pub const ENCODED_LENGTH: usize = 2 * <$Fp>::ENCODED_LENGTH;
+            pub const CHAR_BIT_LENGTH: usize = <$Fp>::BIT_LENGTH;
 
             /// Non-quadratic residue.
             pub const NQR: Self = Self {
