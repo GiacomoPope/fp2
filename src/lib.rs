@@ -3,4 +3,5 @@
 
 pub mod fp2_gen;
 pub mod fp_gen;
+pub mod test_macros;
 pub mod utils64;
