@@ -24,12 +24,13 @@ for the macros fp_gen.rs and fp2_gen.rs
 from sage.all import GF, floor, proof, ceil, inverse_mod
 
 proof.all(False)
-ea = 74
-eb = 41
-A = 2**ea
-B = 3**eb
-p = A * B - 1
-p = 5 * 2**248 - 1
+# ea = 74
+# eb = 41
+# A = 2**ea
+# B = 3**eb
+# p = A * B - 1
+# p = 5 * 2**248 - 1
+p = 65 * 2**376 - 1
 assert p.is_prime()
 words = ceil(p.nbits() / 64)
 
@@ -131,7 +132,7 @@ str = f"""
 // Fp{BITLEN}: a finite field element GF(p) with p = 3 mod 4. 
 // Contents are opaque, all functions are constant-time.
 // Macro input generated with scripts/gen_fp.sage
-crate::finitefield::fp_gen::define_fp_core!(
+fp2_rs::define_fp_core!(
     type_name = Fp{BITLEN},
     words = {N}_usize,
     bit_len = {BITLEN}_usize,
@@ -158,20 +159,11 @@ crate::finitefield::fp_gen::define_fp_core!(
 // Fp{BITLEN}Ext: a finite field element GF(p^2) with modulus x^2 + 1. 
 // Contents are opaque, all functions are constant-time.
 // Macro input generated with scripts/gen_fp.sage
-crate::finitefield::fp2_gen::define_fp2_core!(
+fp2_rs::define_fp2_core!(
     type_name = Fp{BITLEN}Ext,
-    base_field = crate::fields::Fp{BITLEN},
+    base_field = Fp{BITLEN},
     nqr_re = [{NQR_RE_VAL}]
 );
-
-#[cfg(test)]
-mod fp{BITLEN}_tests {{
-    use crate::fields::Fp{BITLEN};
-    use crate::fields::Fp{BITLEN}Ext;
-
-    crate::finitefield::fp_gen::define_fp_tests!(Fp{BITLEN});
-    crate::finitefield::fp2_gen::define_fp2_tests!(Fp{BITLEN}, Fp{BITLEN}Ext);
-}}
 """
 
 print(str)
