@@ -1845,7 +1845,7 @@ macro_rules! define_fp_core {
 
 // ========================================================================
 
-#[macro_export]
+#[cfg_attr(feature = "test_macros", macro_export)]
 macro_rules! define_fp_tests {
     ($Fp:ty) => {
         use num_bigint::{BigInt, Sign, ToBigInt};
