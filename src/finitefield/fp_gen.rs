@@ -74,10 +74,6 @@ macro_rules! define_fp_core {
             addcarry_u64, lzcnt, sgnw, subborrow_u64, umull, umull_add, umull_add2, umull_x2,
             umull_x2_add,
         };
-        use core::convert::TryFrom;
-        use num_bigint::{BigInt, Sign};
-        use rand_core::{CryptoRng, RngCore};
-
         /// A finite field element. Contents are opaque.
         /// All functions are constant-time.
         ///
@@ -1415,7 +1411,7 @@ macro_rules! define_fp_core {
 
             /// Set this structure to a random field element (indistinguishable
             /// from uniform generation).
-            pub fn set_rand<T: CryptoRng + RngCore>(&mut self, rng: &mut T) {
+            pub fn set_rand<T: ::rand_core::CryptoRng + ::rand_core::RngCore>(&mut self, rng: &mut T) {
                 let mut tmp = [0u8; Self::ENCODED_LENGTH + 16];
                 rng.fill_bytes(&mut tmp);
                 self.set_decode_reduce(&tmp);
@@ -1423,7 +1419,7 @@ macro_rules! define_fp_core {
 
             /// Return a new random field element (indistinguishable from
             /// uniform generation).
-            pub fn rand<T: CryptoRng + RngCore>(rng: &mut T) -> Self {
+            pub fn rand<T: ::rand_core::CryptoRng + ::rand_core::RngCore>(rng: &mut T) -> Self {
                 let mut x = Self::ZERO;
                 x.set_rand(rng);
                 x
@@ -1590,7 +1586,7 @@ macro_rules! define_fp_core {
         impl ::std::fmt::Display for $name {
             fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
                 let v_bytes = self.encode();
-                let v_big = BigInt::from_bytes_le(Sign::Plus, &v_bytes);
+                let v_big = ::num_bigint::BigInt::from_bytes_le(::num_bigint::Sign::Plus, &v_bytes);
 
                 write!(f, "{}", v_big.to_string())
             }

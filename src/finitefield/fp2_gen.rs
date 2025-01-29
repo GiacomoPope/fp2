@@ -626,14 +626,17 @@ macro_rules! define_fp2_core {
 
             /// Set this structure to a random field element (indistinguishable
             /// from uniform generation).
-            pub fn set_rand<T: CryptoRng + RngCore>(&mut self, rng: &mut T) {
+            pub fn set_rand<T: ::rand_core::CryptoRng + ::rand_core::RngCore>(
+                &mut self,
+                rng: &mut T,
+            ) {
                 self.x0.set_rand(rng);
                 self.x1.set_rand(rng);
             }
 
             /// Return a new random field element (indistinguishable from
             /// uniform generation).
-            pub fn rand<T: CryptoRng + RngCore>(rng: &mut T) -> Self {
+            pub fn rand<T: ::rand_core::CryptoRng + ::rand_core::RngCore>(rng: &mut T) -> Self {
                 let mut x = Self::ZERO;
                 x.set_rand(rng);
                 x
@@ -641,7 +644,10 @@ macro_rules! define_fp2_core {
 
             /// Set this structure to a random non-square field element
             /// (indistinguishable from uniform generation).
-            pub fn set_rand_nonsquare<T: CryptoRng + RngCore>(&mut self, rng: &mut T) {
+            pub fn set_rand_nonsquare<T: ::rand_core::CryptoRng + ::rand_core::RngCore>(
+                &mut self,
+                rng: &mut T,
+            ) {
                 // We get a random non-square by getting a random non-zero
                 // value, squaring it, and multiplying by a known non-square.
                 // The loop handles the case of getting zero randomly, which
@@ -659,7 +665,10 @@ macro_rules! define_fp2_core {
 
             /// Return a new random non-square field element
             /// (indistinguishable from uniform generation).
-            pub fn rand_nonsquare<T: CryptoRng + RngCore>(self, rng: &mut T) -> Self {
+            pub fn rand_nonsquare<T: ::rand_core::CryptoRng + ::rand_core::RngCore>(
+                self,
+                rng: &mut T,
+            ) -> Self {
                 let mut x = Self::ZERO;
                 x.set_rand_nonsquare(rng);
                 x
@@ -802,8 +811,10 @@ macro_rules! define_fp2_core {
                 let x0_bytes = &r[..<$Fp>::ENCODED_LENGTH];
                 let x1_bytes = &r[<$Fp>::ENCODED_LENGTH..];
 
-                let x0_big = BigInt::from_bytes_le(Sign::Plus, x0_bytes);
-                let x1_big = BigInt::from_bytes_le(Sign::Plus, x1_bytes);
+                let x0_big =
+                    ::num_bigint::BigInt::from_bytes_le(::num_bigint::Sign::Plus, x0_bytes);
+                let x1_big =
+                    ::num_bigint::BigInt::from_bytes_le(::num_bigint::Sign::Plus, x1_bytes);
 
                 write!(f, "i*{} + {}", x1_big, x0_big)
             }
