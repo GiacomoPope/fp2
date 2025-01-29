@@ -25,9 +25,6 @@ macro_rules! define_fp2_core {
         base_field = $Fp:ty,
         nqr_re = $NQR_RE:expr
     ) => {
-        // use num_bigint::{BigInt, Sign};
-        // use rand_core::{CryptoRng, RngCore};
-
         /// GF(p^2) implementation.
         #[derive(Clone, Copy, Debug)]
         pub struct $name {
@@ -1080,7 +1077,7 @@ macro_rules! define_fp2_core {
 // ========================================================================
 
 // Macro expectations:
-#[macro_export]
+#[cfg_attr(feature = "test_macros", macro_export)]
 macro_rules! define_fp2_tests {
     ($Fp:ty, $Fp2:ty) => {
         fn check_fp2_ops(va: &[u8], vb: &[u8], with_sqrt_and_fourth_root: bool) {
