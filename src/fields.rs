@@ -1,10 +1,6 @@
 #![allow(non_snake_case)]
 #![allow(non_upper_case_globals)]
 
-use crate::finitefield::utils64::{
-    addcarry_u64, lzcnt, sgnw, subborrow_u64, umull, umull_add, umull_add2, umull_x2, umull_x2_add,
-};
-
 // ========================================================
 // Definitions of base fields GF(p) = Z / pZ
 // Constants defined are for the macro and generated from
