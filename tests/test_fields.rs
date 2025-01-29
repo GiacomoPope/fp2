@@ -1,6 +1,3 @@
-use fp2_rs::define_fp2_core;
-use fp2_rs::define_fp_core;
-
 // ========================================================
 // Definitions of base fields GF(p) = Z / pZ
 // Constants defined are for the macro and generated from
@@ -11,7 +8,7 @@ use fp2_rs::define_fp_core;
 // Contents are opaque, all functions are constant-time.
 // Macro input generated with scripts/gen_fp.sage
 // p = 2^74 * 3^41 - 1
-define_fp_core!(
+fp2_rs::define_fp_core!(
     type_name = Fp139,
     words = 3_usize,
     bit_len = 139_usize,
@@ -39,7 +36,7 @@ define_fp_core!(
 // Contents are opaque, all functions are constant-time.
 // Macro input generated with scripts/gen_fp.sage
 // p = 5*2^248 - 1
-define_fp_core!(
+fp2_rs::define_fp_core!(
     type_name = Fp251,
     words = 4_usize,
     bit_len = 251_usize,
@@ -127,7 +124,7 @@ define_fp_core!(
 // Fp139Ext: a finite field element GF(p^2) with modulus x^2 + 1.
 // Contents are opaque, all functions are constant-time.
 // Macro input generated with scripts/gen_fp.sage
-define_fp2_core!(
+fp2_rs::define_fp2_core!(
     type_name = Fp139Ext,
     base_field = Fp139,
     nqr_re = [0x0143B0718BD916DA, 0x349A32A6E5E6C800, 0x000000000000043B]
@@ -136,7 +133,7 @@ define_fp2_core!(
 // Fp251Ext: a finite field element GF(p^2) with modulus x^2 + 1.
 // Contents are opaque, all functions are constant-time.
 // Macro input generated with scripts/gen_fp.sage
-define_fp2_core!(
+fp2_rs::define_fp2_core!(
     type_name = Fp251Ext,
     base_field = Fp251,
     nqr_re = [
