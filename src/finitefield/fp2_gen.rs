@@ -20,9 +20,9 @@
 // NQR_RE a Fp type such that (i + NQR_RE) is a NQR
 macro_rules! define_fp2_core {
     (
-        $name:ident,
-        $Fp:ty,
-        $NQR_RE:expr
+        type_name = $name:ident,
+        base_field = $Fp:ty,
+        nqr_re = $NQR_RE:expr
     ) => {
         // use num_bigint::{BigInt, Sign};
         // use rand_core::{CryptoRng, RngCore};

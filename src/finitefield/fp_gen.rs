@@ -48,27 +48,27 @@
 //
 macro_rules! define_fp_core {
     (
-        $name:ident, 
-        $N:literal,
-        $BITLEN:literal,
-        $MODULUS:expr,  
-        $HALF_MODULUS:expr,
-        $R_VAL:expr,
-        $MINUS_R_VAL:expr,
-        $DR_VAL:expr,
-        $TR_VAL:expr,
-        $QR_VAL:expr,
-        $R2_VAL:expr,
-        $P0I:literal,
-        $TFIXDIV_VAL:expr,
-        $TDEC_VAL:expr,
-        $WIN_LEN:literal,
-        $SQRT_EH:expr,
-        $SQRT_EL:literal,
-        $FOURTH_ROOT_EH:expr,
-        $FOURTH_ROOT_EL:literal,
-        $P1:literal,
-        $P1DIV_M:literal,
+        type_name = $name:ident, 
+        words = $N:literal,
+        bit_len = $BITLEN:literal,
+        modulus = $MODULUS:expr,  
+        half_modulus = $HALF_MODULUS:expr,
+        mont_r = $R_VAL:expr,
+        neg_r = $MINUS_R_VAL:expr,
+        two_r = $DR_VAL:expr,
+        three_r = $TR_VAL:expr,
+        four_r = $QR_VAL:expr,
+        r_sqr = $R2_VAL:expr,
+        minus_p_inv = $P0I:literal,
+        div_correction = $TFIXDIV_VAL:expr,
+        reduce_const = $TDEC_VAL:expr,
+        window_len = $WIN_LEN:literal,
+        sqrt_el = $SQRT_EL:literal,
+        sqrt_eh = $SQRT_EH:expr,
+        fourth_root_el = $FOURTH_ROOT_EL:literal,
+        fourth_root_eh = $FOURTH_ROOT_EH:expr,
+        p1 = $P1:literal,
+        p1_div_m = $P1DIV_M:literal,
     ) => {
         /// A finite field element. Contents are opaque.
         /// All functions are constant-time.
@@ -172,7 +172,7 @@ macro_rules! define_fp_core {
                 for i in 1..$N {
                     x |= self.0[i];
                 }
-                (!sgnw(x | x.wrapping_neg())) as u32
+                (!$crate::finitefield::utils64::sgnw(x | x.wrapping_neg())) as u32
             }
 
             /// Return 0xFFFFFFFF if this value is equal to rhs, or 0x00000000
@@ -192,7 +192,7 @@ macro_rules! define_fp_core {
                 // raw addition.
                 let mut cc1 = 0;
                 for i in 0..$N {
-                    let (d, ee) = addcarry_u64(self.0[i], rhs.0[i], cc1);
+                    let (d, ee) = $crate::finitefield::utils64::addcarry_u64(self.0[i], rhs.0[i], cc1);
                     self.0[i] = d;
                     cc1 = ee;
                 }
@@ -200,7 +200,7 @@ macro_rules! define_fp_core {
                 // subtract modulus.
                 let mut cc2 = 0;
                 for i in 0..$N {
-                    let (d, ee) = subborrow_u64(self.0[i], $MODULUS[i], cc2);
+                    let (d, ee) = $crate::finitefield::utils64::subborrow_u64(self.0[i], $MODULUS[i], cc2);
                     self.0[i] = d;
                     cc2 = ee;
                 }
@@ -209,7 +209,7 @@ macro_rules! define_fp_core {
                 let mm = (cc1 as u64).wrapping_sub(cc2 as u64);
                 let mut cc = 0;
                 for i in 0..$N {
-                    let (d, ee) = addcarry_u64(self.0[i], mm & $MODULUS[i], cc);
+                    let (d, ee) = $crate::finitefield::utils64::addcarry_u64(self.0[i], mm & $MODULUS[i], cc);
                     self.0[i] = d;
                     cc = ee;
                 }
@@ -221,7 +221,7 @@ macro_rules! define_fp_core {
                 // raw subtraction
                 let mut cc = 0;
                 for i in 0..$N {
-                    let (d, ee) = subborrow_u64(self.0[i], rhs.0[i], cc);
+                    let (d, ee) = $crate::finitefield::utils64::subborrow_u64(self.0[i], rhs.0[i], cc);
                     self.0[i] = d;
                     cc = ee;
                 }
@@ -230,7 +230,7 @@ macro_rules! define_fp_core {
                 let mm = (cc as u64).wrapping_neg();
                 cc = 0;
                 for i in 0..$N {
-                    let (d, ee) = addcarry_u64(self.0[i], mm & $MODULUS[i], cc);
+                    let (d, ee) = $crate::finitefield::utils64::addcarry_u64(self.0[i], mm & $MODULUS[i], cc);
                     self.0[i] = d;
                     cc = ee;
                 }
@@ -242,7 +242,7 @@ macro_rules! define_fp_core {
                 // subtract from zero
                 let mut cc = 0;
                 for i in 0..$N {
-                    let (d, ee) = subborrow_u64(0, self.0[i], cc);
+                    let (d, ee) = $crate::finitefield::utils64::subborrow_u64(0, self.0[i], cc);
                     self.0[i] = d;
                     cc = ee;
                 }
@@ -251,7 +251,7 @@ macro_rules! define_fp_core {
                 let mm = (cc as u64).wrapping_neg();
                 cc = 0;
                 for i in 0..$N {
-                    let (d, ee) = addcarry_u64(self.0[i], mm & $MODULUS[i], cc);
+                    let (d, ee) = $crate::finitefield::utils64::addcarry_u64(self.0[i], mm & $MODULUS[i], cc);
                     self.0[i] = d;
                     cc = ee;
                 }
@@ -265,9 +265,9 @@ macro_rules! define_fp_core {
             fn set_montyred(&mut self) {
                 for _ in 0..$N {
                     let f = self.0[0].wrapping_mul($P0I);
-                    let (_, mut cc) = umull_add(f, $MODULUS[0], self.0[0]);
+                    let (_, mut cc) = $crate::finitefield::utils64::umull_add(f, $MODULUS[0], self.0[0]);
                     for i in 1..$N {
-                        let (d, hi) = umull_add2(f, $MODULUS[i], self.0[i], cc);
+                        let (d, hi) = $crate::finitefield::utils64::umull_add2(f, $MODULUS[i], self.0[i], cc);
                         self.0[i - 1] = d;
                         cc = hi;
                     }
@@ -284,17 +284,17 @@ macro_rules! define_fp_core {
                 let mut cch = 0;
                 for i in 0..$N {
                     let f = rhs.0[i];
-                    let (lo, mut cc1) = umull_add(f, self.0[0], t.0[0]);
+                    let (lo, mut cc1) = $crate::finitefield::utils64::umull_add(f, self.0[0], t.0[0]);
                     let g = lo.wrapping_mul($P0I);
-                    let (_, mut cc2) = umull_add(g, $MODULUS[0], lo);
+                    let (_, mut cc2) = $crate::finitefield::utils64::umull_add(g, $MODULUS[0], lo);
                     for j in 1..$N {
-                        let (d, hi1) = umull_add2(f, self.0[j], t.0[j], cc1);
+                        let (d, hi1) = $crate::finitefield::utils64::umull_add2(f, self.0[j], t.0[j], cc1);
                         cc1 = hi1;
-                        let (d, hi2) = umull_add2(g, $MODULUS[j], d, cc2);
+                        let (d, hi2) = $crate::finitefield::utils64::umull_add2(g, $MODULUS[j], d, cc2);
                         cc2 = hi2;
                         t.0[j - 1] = d;
                     }
-                    let (d, ee) = addcarry_u64(cc1, cc2, cch);
+                    let (d, ee) = $crate::finitefield::utils64::addcarry_u64(cc1, cc2, cch);
                     t.0[$N - 1] = d;
                     cch = ee;
                 }
@@ -302,14 +302,14 @@ macro_rules! define_fp_core {
                 // final reduction: subtract modulus if necessary
                 let mut cc = 0;
                 for i in 0..$N {
-                    let (d, ee) = subborrow_u64(t.0[i], $MODULUS[i], cc);
+                    let (d, ee) = $crate::finitefield::utils64::subborrow_u64(t.0[i], $MODULUS[i], cc);
                     t.0[i] = d;
                     cc = ee;
                 }
                 let mm = (cch as u64).wrapping_sub(cc as u64);
                 cc = 0;
                 for i in 0..$N {
-                    let (d, ee) = addcarry_u64(t.0[i], mm & $MODULUS[i], cc);
+                    let (d, ee) = $crate::finitefield::utils64::addcarry_u64(t.0[i], mm & $MODULUS[i], cc);
                     self.0[i] = d;
                     cc = ee;
                 }
@@ -332,20 +332,20 @@ macro_rules! define_fp_core {
                 // sum_{i<j} a_i*a_j*2^(64*(i+j)) < 2^(64*(2*N-1))
                 // -> t[2*N-1] remains at zero
                 let f = self.0[0];
-                let (d, mut cc) = umull(f, self.0[1]);
+                let (d, mut cc) = $crate::finitefield::utils64::umull(f, self.0[1]);
                 t[1] = d;
                 for j in 2..$N {
-                    let (d, hi) = umull_add(f, self.0[j], cc);
+                    let (d, hi) = $crate::finitefield::utils64::umull_add(f, self.0[j], cc);
                     t[j] = d;
                     cc = hi;
                 }
                 t[$N] = cc;
                 for i in 1..($N - 1) {
                     let f = self.0[i];
-                    let (d, mut cc) = umull_add(f, self.0[i + 1], t[(i << 1) + 1]);
+                    let (d, mut cc) = $crate::finitefield::utils64::umull_add(f, self.0[i + 1], t[(i << 1) + 1]);
                     t[(i << 1) + 1] = d;
                     for j in (i + 2)..$N {
-                        let (d, hi) = umull_add2(f, self.0[j], t[i + j], cc);
+                        let (d, hi) = $crate::finitefield::utils64::umull_add2(f, self.0[j], t[i + j], cc);
                         t[i + j] = d;
                         cc = hi;
                     }
@@ -366,9 +366,9 @@ macro_rules! define_fp_core {
                 // Add the squares a_i*a_i*w^(64*2*i).
                 let mut cc = 0;
                 for i in 0..$N {
-                    let (lo, hi) = umull(self.0[i], self.0[i]);
-                    let (d0, ee) = addcarry_u64(lo, t[i << 1], cc);
-                    let (d1, ee) = addcarry_u64(hi, t[(i << 1) + 1], ee);
+                    let (lo, hi) = $crate::finitefield::utils64::umull(self.0[i], self.0[i]);
+                    let (d0, ee) = $crate::finitefield::utils64::addcarry_u64(lo, t[i << 1], cc);
+                    let (d1, ee) = $crate::finitefield::utils64::addcarry_u64(hi, t[(i << 1) + 1], ee);
                     t[i << 1] = d0;
                     t[(i << 1) + 1] = d1;
                     cc = ee;
@@ -401,7 +401,7 @@ macro_rules! define_fp_core {
                 let mm = (self.0[0] & 1).wrapping_neg();
                 let mut cc = 0;
                 for i in 0..($N - 1) {
-                    let (d, ee) = addcarry_u64(
+                    let (d, ee) = $crate::finitefield::utils64::addcarry_u64(
                         (self.0[i] >> 1) | (self.0[i + 1] << 63),
                         mm & $HALF_MODULUS[i],
                         cc,
@@ -409,7 +409,7 @@ macro_rules! define_fp_core {
                     self.0[i] = d;
                     cc = ee;
                 }
-                let (d, _) = addcarry_u64(self.0[$N - 1] >> 1, mm & $HALF_MODULUS[$N - 1], cc);
+                let (d, _) = $crate::finitefield::utils64::addcarry_u64(self.0[$N - 1] >> 1, mm & $HALF_MODULUS[$N - 1], cc);
                 self.0[$N - 1] = d;
             }
 
@@ -431,7 +431,7 @@ macro_rules! define_fp_core {
                     let w = self.0[i];
                     let t = (w << 1) | tb;
                     tb = w >> 63;
-                    let (d, ee) = subborrow_u64(t, $MODULUS[i], cc);
+                    let (d, ee) = $crate::finitefield::utils64::subborrow_u64(t, $MODULUS[i], cc);
                     self.0[i] = d;
                     cc = ee;
                 }
@@ -440,7 +440,7 @@ macro_rules! define_fp_core {
                 let mm = tb.wrapping_sub(cc as u64);
                 cc = 0;
                 for i in 0..$N {
-                    let (d, ee) = addcarry_u64(self.0[i], mm & $MODULUS[i], cc);
+                    let (d, ee) = $crate::finitefield::utils64::addcarry_u64(self.0[i], mm & $MODULUS[i], cc);
                     self.0[i] = d;
                     cc = ee;
                 }
@@ -508,10 +508,10 @@ macro_rules! define_fp_core {
                 let ak = ((k as u32) ^ sk).wrapping_sub(sk);
 
                 // Do the product over integers.
-                let (d, mut hi) = umull(self.0[0], ak as u64);
+                let (d, mut hi) = $crate::finitefield::utils64::umull(self.0[0], ak as u64);
                 self.0[0] = d;
                 for i in 1..$N {
-                    let (d, ee) = umull_add(self.0[i], ak as u64, hi);
+                    let (d, ee) = $crate::finitefield::utils64::umull_add(self.0[i], ak as u64, hi);
                     self.0[i] = d;
                     hi = ee;
                 }
@@ -556,7 +556,7 @@ macro_rules! define_fp_core {
                 };
 
                 // Compute b = floor(x1/p1).
-                let (_, t) = umull(x1, $P1DIV_M);
+                let (_, t) = $crate::finitefield::utils64::umull(x1, $P1DIV_M);
                 let b = (x1.wrapping_sub(t) >> 1).wrapping_add(t) >> 31;
 
                 // Add 1 to b, unless b == p1 (we cannot have b > p1).
@@ -566,20 +566,20 @@ macro_rules! define_fp_core {
                 let mut cc1 = 0;
                 let mut cc2 = 0;
                 for i in 0..$N {
-                    let (d, ee) = umull_add(b, $MODULUS[i], cc1);
+                    let (d, ee) = $crate::finitefield::utils64::umull_add(b, $MODULUS[i], cc1);
                     cc1 = ee;
-                    let (d, ee) = subborrow_u64(self.0[i], d, cc2);
+                    let (d, ee) = $crate::finitefield::utils64::subborrow_u64(self.0[i], d, cc2);
                     self.0[i] = d;
                     cc2 = ee;
                 }
-                let (mut hi, _) = subborrow_u64(hi, cc1, cc2);
+                let (mut hi, _) = $crate::finitefield::utils64::subborrow_u64(hi, cc1, cc2);
 
                 // Add p (at most twice) as long as the value is negative.
                 for _ in 0..2 {
-                    let m = sgnw(hi);
+                    let m = $crate::finitefield::utils64::sgnw(hi);
                     let mut cc = 0;
                     for i in 0..$N {
-                        let (d, ee) = addcarry_u64(self.0[i], m & $MODULUS[i], cc);
+                        let (d, ee) = $crate::finitefield::utils64::addcarry_u64(self.0[i], m & $MODULUS[i], cc);
                         self.0[i] = d;
                         cc = ee;
                     }
@@ -664,17 +664,17 @@ macro_rules! define_fp_core {
             #[inline]
             fn set_montylin(&mut self, u: &Self, v: &Self, f: u64, g: u64) {
                 // Make sure f and g are non-negative.
-                let sf = sgnw(f);
+                let sf = $crate::finitefield::utils64::sgnw(f);
                 let f = (f ^ sf).wrapping_sub(sf);
                 let tu = Self::select(u, &-u, sf as u32);
-                let sg = sgnw(g);
+                let sg = $crate::finitefield::utils64::sgnw(g);
                 let g = (g ^ sg).wrapping_sub(sg);
                 let tv = Self::select(v, &-v, sg as u32);
 
-                let (d, mut cc) = umull_x2(tu.0[0], f, tv.0[0], g);
+                let (d, mut cc) = $crate::finitefield::utils64::umull_x2(tu.0[0], f, tv.0[0], g);
                 self.0[0] = d;
                 for i in 1..$N {
-                    let (d, hi) = umull_x2_add(tu.0[i], f, tv.0[i], g, cc);
+                    let (d, hi) = $crate::finitefield::utils64::umull_x2_add(tu.0[i], f, tv.0[i], g, cc);
                     self.0[i] = d;
                     cc = hi;
                 }
@@ -682,13 +682,13 @@ macro_rules! define_fp_core {
 
                 // Montgomery reduction (one round)
                 let k = self.0[0].wrapping_mul($P0I);
-                let (_, mut cc) = umull_add(k, $MODULUS[0], self.0[0]);
+                let (_, mut cc) = $crate::finitefield::utils64::umull_add(k, $MODULUS[0], self.0[0]);
                 for i in 1..$N {
-                    let (d, hi) = umull_add2(k, $MODULUS[i], self.0[i], cc);
+                    let (d, hi) = $crate::finitefield::utils64::umull_add2(k, $MODULUS[i], self.0[i], cc);
                     self.0[i - 1] = d;
                     cc = hi;
                 }
-                let (d, cc1) = addcarry_u64(up, cc, 0);
+                let (d, cc1) = $crate::finitefield::utils64::addcarry_u64(up, cc, 0);
                 self.0[$N - 1] = d;
 
                 // |f| <= 2^62 and |g| <= 2^62, therefore |u*f + v*g| < p*2^63
@@ -696,14 +696,14 @@ macro_rules! define_fp_core {
                 // is less than 2*p and a single conditional subtraction is enough.
                 let mut cc2 = 0;
                 for i in 0..$N {
-                    let (d, ee) = subborrow_u64(self.0[i], $MODULUS[i], cc2);
+                    let (d, ee) = $crate::finitefield::utils64::subborrow_u64(self.0[i], $MODULUS[i], cc2);
                     self.0[i] = d;
                     cc2 = ee;
                 }
                 let mm = (cc1 as u64).wrapping_sub(cc2 as u64);
                 let mut cc = 0;
                 for i in 0..$N {
-                    let (d, ee) = addcarry_u64(self.0[i], mm & $MODULUS[i], cc);
+                    let (d, ee) = $crate::finitefield::utils64::addcarry_u64(self.0[i], mm & $MODULUS[i], cc);
                     self.0[i] = d;
                     cc = ee;
                 }
@@ -729,9 +729,9 @@ macro_rules! define_fp_core {
             fn set_lindiv31abs(&mut self, a: &Self, b: &Self, f: u64, g: u64) -> u64 {
                 // Replace f and g with abs(f) and abs(g), but remember the
                 // original signs.
-                let sf = sgnw(f);
+                let sf = $crate::finitefield::utils64::sgnw(f);
                 let f = (f ^ sf).wrapping_sub(sf);
-                let sg = sgnw(g);
+                let sg = $crate::finitefield::utils64::sgnw(g);
                 let g = (g ^ sg).wrapping_sub(sg);
 
                 // Compute a*f + b*g (upper word in 'up')
@@ -739,11 +739,11 @@ macro_rules! define_fp_core {
                 let mut cc2 = 0;
                 let mut cc3 = 0;
                 for i in 0..$N {
-                    let (d1, ee1) = subborrow_u64(a.0[i] ^ sf, sf, cc1);
+                    let (d1, ee1) = $crate::finitefield::utils64::subborrow_u64(a.0[i] ^ sf, sf, cc1);
                     cc1 = ee1;
-                    let (d2, ee2) = subborrow_u64(b.0[i] ^ sg, sg, cc2);
+                    let (d2, ee2) = $crate::finitefield::utils64::subborrow_u64(b.0[i] ^ sg, sg, cc2);
                     cc2 = ee2;
-                    let (d3, hi3) = umull_x2_add(d1, f, d2, g, cc3);
+                    let (d3, hi3) = $crate::finitefield::utils64::umull_x2_add(d1, f, d2, g, cc3);
                     self.0[i] = d3;
                     cc3 = hi3;
                 }
@@ -758,10 +758,10 @@ macro_rules! define_fp_core {
                 self.0[$N - 1] = (self.0[$N - 1] >> 31) | (up << 33);
 
                 // Negate the result if (a*f + b*g) was negative.
-                let w = sgnw(up);
+                let w = $crate::finitefield::utils64::sgnw(up);
                 let mut cc = 0;
                 for i in 0..$N {
-                    let (d, ee) = subborrow_u64(self.0[i] ^ w, w, cc);
+                    let (d, ee) = $crate::finitefield::utils64::subborrow_u64(self.0[i] ^ w, w, cc);
                     self.0[i] = d;
                     cc = ee;
                 }
@@ -841,7 +841,7 @@ macro_rules! define_fp_core {
                     // since that would mean that a = b = 0, but b is odd). In that
                     // case, we grabbed one word (in a_hi and b_hi) and both values
                     // fit in 64 bits.
-                    let s = lzcnt(a_hi | b_hi);
+                    let s = $crate::finitefield::utils64::lzcnt(a_hi | b_hi);
                     let mut xa = (a_hi << s) | ((a_lo >> 1) >> (63 - s));
                     let mut xb = (b_hi << s) | ((b_lo >> 1) >> (63 - s));
                     xa = (xa & 0xFFFFFFFF80000000) | (a.0[0] & 0x000000007FFFFFFF);
@@ -857,7 +857,7 @@ macro_rules! define_fp_core {
                     let mut fg1 = 1u64 << 32;
                     for _ in 0..31 {
                         let a_odd = (xa & 1).wrapping_neg();
-                        let (_, cc) = subborrow_u64(xa, xb, 0);
+                        let (_, cc) = $crate::finitefield::utils64::subborrow_u64(xa, xb, 0);
                         let swap = a_odd & (cc as u64).wrapping_neg();
                         let t1 = swap & (xa ^ xb);
                         xa ^= t1;
@@ -908,7 +908,7 @@ macro_rules! define_fp_core {
                 let mut g1 = 1u64;
                 for _ in 0..NUM2 {
                     let a_odd = (xa & 1).wrapping_neg();
-                    let (_, cc) = subborrow_u64(xa, xb, 0);
+                    let (_, cc) = $crate::finitefield::utils64::subborrow_u64(xa, xb, 0);
                     let swap = a_odd & (cc as u64).wrapping_neg();
                     let t1 = swap & (xa ^ xb);
                     xa ^= t1;
@@ -1178,7 +1178,7 @@ macro_rules! define_fp_core {
                     // since that would mean that a = b = 0, but b is odd). In that
                     // case, we grabbed one word (in a_hi and b_hi) and both values
                     // fit in 64 bits.
-                    let s = lzcnt(a_hi | b_hi);
+                    let s = $crate::finitefield::utils64::lzcnt(a_hi | b_hi);
                     let mut xa = (a_hi << s) | ((a_lo >> 1) >> (63 - s));
                     let mut xb = (b_hi << s) | ((b_lo >> 1) >> (63 - s));
                     xa = (xa & 0xFFFFFFFF80000000) | (a.0[0] & 0x000000007FFFFFFF);
@@ -1194,7 +1194,7 @@ macro_rules! define_fp_core {
                     let mut fg1 = 1u64 << 32;
                     for _ in 0..29 {
                         let a_odd = (xa & 1).wrapping_neg();
-                        let (_, cc) = subborrow_u64(xa, xb, 0);
+                        let (_, cc) = $crate::finitefield::utils64::subborrow_u64(xa, xb, 0);
                         let swap = a_odd & (cc as u64).wrapping_neg();
                         ls ^= swap & ((xa & xb) >> 1);
                         let t1 = swap & (xa ^ xb);
@@ -1228,7 +1228,7 @@ macro_rules! define_fp_core {
                         >> 29;
                     for _ in 0..2 {
                         let a_odd = (xa & 1).wrapping_neg();
-                        let (_, cc) = subborrow_u64(xa, xb, 0);
+                        let (_, cc) = $crate::finitefield::utils64::subborrow_u64(xa, xb, 0);
                         let swap = a_odd & (cc as u64).wrapping_neg();
                         ls ^= swap & ((a0 & b0) >> 1);
                         let t1 = swap & (xa ^ xb);
@@ -1277,7 +1277,7 @@ macro_rules! define_fp_core {
                 let mut xb = b.0[0];
                 for _ in 0..NUM2 {
                     let a_odd = (xa & 1).wrapping_neg();
-                    let (_, cc) = subborrow_u64(xa, xb, 0);
+                    let (_, cc) = $crate::finitefield::utils64::subborrow_u64(xa, xb, 0);
                     let swap = a_odd & (cc as u64).wrapping_neg();
                     ls ^= swap & ((xa & xb) >> 1);
                     let t1 = swap & (xa ^ xb);
@@ -1343,9 +1343,9 @@ macro_rules! define_fp_core {
                 r.set_decode_nocheck(buf);
 
                 // check that the source is canonical; clear if invalid
-                let (_, mut cc) = subborrow_u64(r.0[0], $MODULUS[0], 0);
+                let (_, mut cc) = $crate::finitefield::utils64::subborrow_u64(r.0[0], $MODULUS[0], 0);
                 for i in 1..$N {
-                    let (_, ee) = subborrow_u64(r.0[i], $MODULUS[i], cc);
+                    let (_, ee) = $crate::finitefield::utils64::subborrow_u64(r.0[i], $MODULUS[i], cc);
                     cc = ee;
                 }
                 let m = (cc as u64).wrapping_neg();
@@ -1458,17 +1458,17 @@ macro_rules! define_fp_core {
 
                     // Compute u = u + a1j * b1
                     let a1j = a1.0[j];
-                    (u.0[0], carry) = umull_add(a1j, b1.0[0], u.0[0]);
+                    (u.0[0], carry) = $crate::finitefield::utils64::umull_add(a1j, b1.0[0], u.0[0]);
                     for k in 1..$N {
-                        (u.0[k], carry) = umull_add2(a1j, b1.0[k], u.0[k], carry);
+                        (u.0[k], carry) = $crate::finitefield::utils64::umull_add2(a1j, b1.0[k], u.0[k], carry);
                     }
                     extra_limb = extra_limb.wrapping_add(carry);
 
                     // Compute u = u + a2j * b2
                     let a2j = a2.0[j];
-                    (u.0[0], carry) = umull_add(a2j, b2.0[0], u.0[0]);
+                    (u.0[0], carry) = $crate::finitefield::utils64::umull_add(a2j, b2.0[0], u.0[0]);
                     for k in 1..$N {
-                        (u.0[k], carry) = umull_add2(a2j, b2.0[k], u.0[k], carry);
+                        (u.0[k], carry) = $crate::finitefield::utils64::umull_add2(a2j, b2.0[k], u.0[k], carry);
                     }
                     extra_limb = extra_limb.wrapping_add(carry);
 
@@ -1481,9 +1481,9 @@ macro_rules! define_fp_core {
                     // u64 multiplication for each loop, but stops this function from
                     // working more generally.
                     let q = u.0[0].wrapping_mul($P0I);
-                    (_, carry) = umull_add(q, $MODULUS[0], u.0[0]);
+                    (_, carry) = $crate::finitefield::utils64::umull_add(q, $MODULUS[0], u.0[0]);
                     for k in 1..$N {
-                        (u.0[k - 1], carry) = umull_add2(q, $MODULUS[k], u.0[k], carry);
+                        (u.0[k - 1], carry) = $crate::finitefield::utils64::umull_add2(q, $MODULUS[k], u.0[k], carry);
                     }
                     u.0[$N - 1] = extra_limb.wrapping_add(carry);
                 }
@@ -1493,12 +1493,12 @@ macro_rules! define_fp_core {
                 // conditionally add the modulus back if the previous result was negative
                 borrow = 0;
                 for i in 0..$N {
-                    (u.0[i], borrow) = subborrow_u64(u.0[i], $MODULUS[i], borrow);
+                    (u.0[i], borrow) = $crate::finitefield::utils64::subborrow_u64(u.0[i], $MODULUS[i], borrow);
                 }
                 let mask = (borrow as u64).wrapping_neg();
                 borrow = 0;
                 for i in 0..$N {
-                    (u.0[i], borrow) = addcarry_u64(u.0[i], mask & $MODULUS[i], borrow);
+                    (u.0[i], borrow) = $crate::finitefield::utils64::addcarry_u64(u.0[i], mask & $MODULUS[i], borrow);
                 }
 
                 u
@@ -1520,7 +1520,7 @@ macro_rules! define_fp_core {
                 // the below loop?
                 let mut b2_minus = *b2;
                 for i in 0..$N {
-                    (b2_minus.0[i], borrow) = subborrow_u64($MODULUS[i], b2_minus.0[i], borrow);
+                    (b2_minus.0[i], borrow) = $crate::finitefield::utils64::subborrow_u64($MODULUS[i], b2_minus.0[i], borrow);
                 }
 
                 // Montgomery multiplcation is interleaved, so we loop through every limb
@@ -1534,17 +1534,17 @@ macro_rules! define_fp_core {
 
                     // Compute u = u + a1j * b1
                     let a1j = a1.0[j];
-                    (u.0[0], carry) = umull_add(a1j, b1.0[0], u.0[0]);
+                    (u.0[0], carry) = $crate::finitefield::utils64::umull_add(a1j, b1.0[0], u.0[0]);
                     for k in 1..$N {
-                        (u.0[k], carry) = umull_add2(a1j, b1.0[k], u.0[k], carry);
+                        (u.0[k], carry) = $crate::finitefield::utils64::umull_add2(a1j, b1.0[k], u.0[k], carry);
                     }
                     extra_limb = extra_limb.wrapping_add(carry);
 
                     // Compute u = u + a2j * b2_minus = u - a2j * b2
                     let a2j = a2.0[j];
-                    (u.0[0], carry) = umull_add(a2j, b2_minus.0[0], u.0[0]);
+                    (u.0[0], carry) = $crate::finitefield::utils64::umull_add(a2j, b2_minus.0[0], u.0[0]);
                     for k in 1..$N {
-                        (u.0[k], carry) = umull_add2(a2j, b2_minus.0[k], u.0[k], carry);
+                        (u.0[k], carry) = $crate::finitefield::utils64::umull_add2(a2j, b2_minus.0[k], u.0[k], carry);
                     }
                     extra_limb = extra_limb.wrapping_add(carry);
 
@@ -1553,9 +1553,9 @@ macro_rules! define_fp_core {
                     // Then computing
                     // u = (u + q * p) / 2^64
                     let q = u.0[0].wrapping_mul($P0I);
-                    (_, carry) = umull_add(q, $MODULUS[0], u.0[0]);
+                    (_, carry) = $crate::finitefield::utils64::umull_add(q, $MODULUS[0], u.0[0]);
                     for k in 1..$N {
-                        (u.0[k - 1], carry) = umull_add2(q, $MODULUS[k], u.0[k], carry);
+                        (u.0[k - 1], carry) = $crate::finitefield::utils64::umull_add2(q, $MODULUS[k], u.0[k], carry);
                     }
                     u.0[$N - 1] = extra_limb.wrapping_add(carry);
                 }
@@ -1565,12 +1565,12 @@ macro_rules! define_fp_core {
                 // conditionally add the modulus back if the previous result was negative
                 let mut borrow = 0;
                 for i in 0..$N {
-                    (u.0[i], borrow) = subborrow_u64(u.0[i], $MODULUS[i], borrow);
+                    (u.0[i], borrow) = $crate::finitefield::utils64::subborrow_u64(u.0[i], $MODULUS[i], borrow);
                 }
                 let mask = (borrow as u64).wrapping_neg();
                 borrow = 0;
                 for i in 0..$N {
-                    (u.0[i], borrow) = addcarry_u64(u.0[i], mask & $MODULUS[i], borrow);
+                    (u.0[i], borrow) = $crate::finitefield::utils64::addcarry_u64(u.0[i], mask & $MODULUS[i], borrow);
                 }
 
                 u
