@@ -1080,7 +1080,7 @@ macro_rules! define_fp2_core {
 // ========================================================================
 
 // Macro expectations:
-#[cfg(test)]
+#[macro_export]
 macro_rules! define_fp2_tests {
     ($Fp:ty, $Fp2:ty) => {
         fn check_fp2_ops(va: &[u8], vb: &[u8], with_sqrt_and_fourth_root: bool) {
@@ -1233,6 +1233,3 @@ macro_rules! define_fp2_tests {
         }
     };
 } // End of macro: define_fp2_tests
-
-#[cfg(test)]
-pub(crate) use define_fp2_tests;

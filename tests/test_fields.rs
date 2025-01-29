@@ -149,12 +149,18 @@ define_fp2_core!(
 
 #[cfg(test)]
 mod fp139_tests {
-    fp2_rs::fp_gen::define_fp_tests!(Fp139);
-    fp2_rs::fp2_gen::define_fp2_tests!(Fp139, Fp139Ext);
+    use super::Fp139;
+    use super::Fp139Ext;
+
+    fp2_rs::define_fp_tests!(Fp139);
+    fp2_rs::define_fp2_tests!(Fp139, Fp139Ext);
 }
 
 #[cfg(test)]
 mod fp251_tests {
-    fp2_rs::fp_gen::define_fp_tests!(Fp251);
-    fp2_rs::fp2_gen::define_fp2_tests!(Fp251, Fp251Ext);
+    use super::Fp251;
+    use super::Fp251Ext;
+
+    fp2_rs::define_fp_tests!(Fp251);
+    fp2_rs::define_fp2_tests!(Fp251, Fp251Ext);
 }

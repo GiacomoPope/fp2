@@ -1843,12 +1843,9 @@ macro_rules! define_fp_core {
     };
 } // End of macro: define_fp_core
 
-pub(crate) use define_fp_core;
-
 // ========================================================================
 
-// Macro expectations:
-#[cfg(test)]
+#[macro_export]
 macro_rules! define_fp_tests {
     ($Fp:ty) => {
         use num_bigint::{BigInt, Sign, ToBigInt};
@@ -2053,5 +2050,3 @@ macro_rules! define_fp_tests {
     };
 } // End of macro: define_fp_tests
 
-#[cfg(test)]
-pub(crate) use define_fp_tests;

@@ -3,4 +3,4 @@
 
 pub mod fp2_gen;
 pub mod fp_gen;
-mod utils64;
+pub mod utils64;
