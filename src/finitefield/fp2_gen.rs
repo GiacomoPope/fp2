@@ -26,7 +26,6 @@ macro_rules! define_fp2_core {
     ) => {
         // use num_bigint::{BigInt, Sign};
         // use rand_core::{CryptoRng, RngCore};
-        // use std::fmt;
 
         /// GF(p^2) implementation.
         #[derive(Clone, Copy, Debug)]

@@ -39,7 +39,7 @@ crate::finitefield::fp_gen::define_fp_core!(
 
 crate::finitefield::fp2_gen::define_fp2_core!(
     Fp139Ext,
-    super::Fp139,
+    crate::fields::Fp139,
     [0x210605607B24DEC5, 0x3D882398A1EFE806, 0x0000000000000201]
 );
 
