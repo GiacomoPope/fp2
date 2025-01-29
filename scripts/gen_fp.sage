@@ -2,6 +2,7 @@
 This file, given a prime p = 3 mod 4 computes all the following constants needed
 for the macros fp_gen.rs and fp2_gen.rs
 
+//      N (usize)                 the number of words needed
 //      BITLEN (usize)            modulus length in bits
 //      MODULUS ([u64; N])        modulus p (little-endian)
 //      HALF_MODULUS ([u64; N])   (p + 1)/2 (little-endian)
@@ -21,11 +22,12 @@ for the macros fp_gen.rs and fp2_gen.rs
 """
 
 proof.all(False)
-ea = 131
-eb = 78
-A = 2**ea
-B = 3**eb
-p = A * B - 1
+# ea = 131
+# eb = 78
+# A = 2**ea
+# B = 3**eb
+# p = A * B - 1
+p = 5*2**248 - 1
 assert p.is_prime()
 
 def to_little_u64(n):
@@ -80,6 +82,7 @@ TFIXDIV_VAL = to_little_u64(TFIXDIV_VAL)
 
 TDEC_VAL = to_little_u64(2**(64*(2*N-1)) % p)
 
+WIN_LEN = 5
 e = (p + 1)//4
 SQRT_EL = BITLEN
 while True:
@@ -115,75 +118,45 @@ while True:
 assert not F([NQR_RE_VAL, 1]).is_square()
 NQR_RE_VAL = to_little_u64(2**(64*N) * NQR_RE_VAL % p)
 
-
-
 str = f"""
-pub mod Fp{BITLEN} {{
-    const N: usize = {N};
-    const BITLEN: usize = {BITLEN};
-    const MODULUS: [u64; N] = [
-        {MODULUS}
-    ];
-    const HALF_MODULUS: [u64; N] = [
-        {HALF_MODULUS}
-    ];
-    const R_VAL: [u64; N] = [
-        {R_VAL}
-    ];
-    const MINUS_R_VAL: [u64; N] = [
-        {MINUS_R_VAL}
-    ];
-    const DR_VAL: [u64; N] = [
-        {DR_VAL}
-    ];
-    const TR_VAL: [u64; N] = [
-        {TR_VAL}
-    ];
-    const QR_VAL: [u64; N] = [
-        {QR_VAL}
-    ];
-    const R2_VAL: [u64; N] = [
-        {R2_VAL}
-    ];
-    const P0I: u64 = {P0I};
-    const TFIXDIV_VAL: [u64; N] = [
-        {TFIXDIV_VAL}
-    ];
-    const TDEC_VAL: [u64; N] = [
-        {TDEC_VAL}
-    ];
-    const WIN_LEN: usize = 5;
-    const SQRT_EH: [u8; {len(SQRT_EH)}] = [
-        {str(SQRT_EH).replace('[', '').replace(']', '')}
-    ];
-    const SQRT_EL: usize = {SQRT_EL};
-    const FOURTH_ROOT_EH: [u8; {len(FOURTH_ROOT_EH)}] = [
-        {str(FOURTH_ROOT_EH).replace('[', '').replace(']', '')}
-    ];
-    const FOURTH_ROOT_EL: usize = {FOURTH_ROOT_EL};
-    const P1: u64 = {P1};
-    const P1DIV_M: u64 = {P1DIV_M};
+crate::finitefield::fp_gen::define_fp_core!(
+    Fp{BITLEN},
+    {N}_usize,
+    {BITLEN}_usize,
+    [{MODULUS}],
+    [{HALF_MODULUS}],
+    [{R_VAL}],
+    [{MINUS_R_VAL}],
+    [{DR_VAL}],
+    [{TR_VAL}],
+    [{QR_VAL}],
+    [{R2_VAL}],
+    {P0I}_u64,
+    [{TFIXDIV_VAL}],
+    [{TDEC_VAL}],
+    {WIN_LEN}_usize,
+    {SQRT_EH},
+    {SQRT_EL}_usize,
+    {FOURTH_ROOT_EH},
+    {FOURTH_ROOT_EL}_usize,
+    {P1}_u64,
+    {P1DIV_M}_u64,
+);
 
-    crate::finitefield::fp_gen::define_fp_core!{{}}
+crate::finitefield::fp2_gen::define_fp2_core!(
+    Fp{BITLEN}Ext,
+    crate::fields::Fp{BITLEN},
+    [{NQR_RE_VAL}]
+);
 
-    #[cfg(test)]
-    mod tests {{
-        crate::finitefield::fp_gen::define_fp_tests!{{}}
-    }}
-}}
+#[cfg(test)]
+mod fp{BITLEN}_tests {{
+    use crate::fields::Fp{BITLEN};
+    use crate::fields::Fp{BITLEN}Ext;
 
-pub mod Fp{BITLEN}Ext {{
-    use super::Fp{BITLEN}::Fp;
-    const NQR_RE: Fp = Fp::new([
-        {NQR_RE_VAL}
-    ]);
-
-    crate::finitefield::fp2_gen::define_fp2_core! {{}}
-    #[cfg(test)]
-    mod tests {{
-        crate::finitefield::fp2_gen::define_fp2_tests! {{}}
-    }}
-}}
+    crate::finitefield::fp_gen::define_fp_tests!(Fp{BITLEN});
+    crate::finitefield::fp2_gen::define_fp2_tests!(Fp{BITLEN}, Fp{BITLEN}Ext);
+}};
 """
 
 print(str)

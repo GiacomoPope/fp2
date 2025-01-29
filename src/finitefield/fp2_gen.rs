@@ -19,62 +19,64 @@
 // A finite field Fp = GF(p) with p = 3 mod 4
 // NQR_RE a Fp type such that (i + NQR_RE) is a NQR
 macro_rules! define_fp2_core {
-    () => {
-        use core::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
-        use num_bigint::{BigInt, Sign};
-        use rand_core::{CryptoRng, RngCore};
-        use std::fmt;
+    (
+        $name:ident,
+        $Fp:ty,
+        $NQR_RE:expr
+    ) => {
+        // use num_bigint::{BigInt, Sign};
+        // use rand_core::{CryptoRng, RngCore};
 
         /// GF(p^2) implementation.
         #[derive(Clone, Copy, Debug)]
-        pub struct Fp2 {
-            x0: Fp,
-            x1: Fp,
+        pub struct $name {
+            x0: $Fp,
+            x1: $Fp,
         }
 
-        impl Fp2 {
+        impl $name {
             pub const ZERO: Self = Self {
-                x0: Fp::ZERO,
-                x1: Fp::ZERO,
+                x0: <$Fp>::ZERO,
+                x1: <$Fp>::ZERO,
             };
             pub const ONE: Self = Self {
-                x0: Fp::ONE,
-                x1: Fp::ZERO,
+                x0: <$Fp>::ONE,
+                x1: <$Fp>::ZERO,
             };
             pub const TWO: Self = Self {
-                x0: Fp::TWO,
-                x1: Fp::ZERO,
+                x0: <$Fp>::TWO,
+                x1: <$Fp>::ZERO,
             };
             pub const THREE: Self = Self {
-                x0: Fp::THREE,
-                x1: Fp::ZERO,
+                x0: <$Fp>::THREE,
+                x1: <$Fp>::ZERO,
             };
             pub const FOUR: Self = Self {
-                x0: Fp::FOUR,
-                x1: Fp::ZERO,
+                x0: <$Fp>::FOUR,
+                x1: <$Fp>::ZERO,
             };
             pub const MINUS_ONE: Self = Self {
-                x0: Fp::MINUS_ONE,
-                x1: Fp::ZERO,
+                x0: <$Fp>::MINUS_ONE,
+                x1: <$Fp>::ZERO,
             };
             pub const ZETA: Self = Self {
-                x0: Fp::ZERO,
-                x1: Fp::ONE,
+                x0: <$Fp>::ZERO,
+                x1: <$Fp>::ONE,
             };
             pub const MINUS_ZETA: Self = Self {
-                x0: Fp::ZERO,
-                x1: Fp::MINUS_ONE,
+                x0: <$Fp>::ZERO,
+                x1: <$Fp>::MINUS_ONE,
             };
 
-            pub const ENCODED_LENGTH: usize = 2 * Fp::ENCODED_LENGTH;
+            pub const ENCODED_LENGTH: usize = 2 * <$Fp>::ENCODED_LENGTH;
 
             /// Non-quadratic residue.
             pub const NQR: Self = Self {
-                x0: NQR_RE,
-                x1: Fp::ONE,
+                x0: <$Fp>::new($NQR_RE),
+                x1: <$Fp>::ONE,
             };
 
-            pub const fn new(re: &Fp, im: &Fp) -> Self {
+            pub const fn new(re: &$Fp, im: &$Fp) -> Self {
                 Self { x0: *re, x1: *im }
             }
 
@@ -155,9 +157,9 @@ macro_rules! define_fp2_core {
                 // x*y = (x0 + i*x1)*(y0 + i*y1)
                 //     = (x0*y0 - x1*y1) + i*(x0*y1 + y0*x1)
                 // Computes (x0*y0 - x1*y1)
-                let x0 = Fp::difference_of_products(&self.x0, &rhs.x0, &self.x1, &rhs.x1);
+                let x0 = <$Fp>::difference_of_products(&self.x0, &rhs.x0, &self.x1, &rhs.x1);
                 // Computes (x0*y1 + y0*x1)
-                let x1 = Fp::sum_of_products(&self.x0, &rhs.x1, &self.x1, &rhs.x0);
+                let x1 = <$Fp>::sum_of_products(&self.x0, &rhs.x1, &self.x1, &rhs.x0);
 
                 self.x0 = x0;
                 self.x1 = x1;
@@ -276,8 +278,8 @@ macro_rules! define_fp2_core {
             #[inline]
             pub fn select(a: &Self, b: &Self, ctl: u32) -> Self {
                 Self {
-                    x0: Fp::select(&a.x0, &b.x0, ctl),
-                    x1: Fp::select(&a.x1, &b.x1, ctl),
+                    x0: <$Fp>::select(&a.x0, &b.x0, ctl),
+                    x1: <$Fp>::select(&a.x1, &b.x1, ctl),
                 }
             }
 
@@ -297,8 +299,8 @@ macro_rules! define_fp2_core {
 
             #[inline]
             pub fn condswap(a: &mut Self, b: &mut Self, ctl: u32) {
-                Fp::condswap(&mut a.x0, &mut b.x0, ctl);
-                Fp::condswap(&mut a.x1, &mut b.x1, ctl);
+                <$Fp>::condswap(&mut a.x0, &mut b.x0, ctl);
+                <$Fp>::condswap(&mut a.x1, &mut b.x1, ctl);
             }
 
             #[inline]
@@ -411,11 +413,11 @@ macro_rules! define_fp2_core {
                 let mut y1 = self.x1 / y0.mul2();
                 // If x1 = 0, then the square root worked, and y1 = 0 at this point;
                 // we must still exchange y0 and y1 if x0 was not a square.
-                Fp::condswap(&mut y0, &mut y1, nqr & x1z);
+                <$Fp>::condswap(&mut y0, &mut y1, nqr & x1z);
                 // Result goes into this object. If there was a failure (r == 0),
                 // then we must clear both x0 and x1.
-                self.x0.set_select(&Fp::ZERO, &y0, r);
-                self.x1.set_select(&Fp::ZERO, &y1, r);
+                self.x0.set_select(&<$Fp>::ZERO, &y0, r);
+                self.x1.set_select(&<$Fp>::ZERO, &y1, r);
                 // Sign mangement: negate the result if needed.
                 let x0odd = ((self.x0.encode()[0] as u32) & 1).wrapping_neg();
                 let x1odd = ((self.x1.encode()[0] as u32) & 1).wrapping_neg();
@@ -542,8 +544,8 @@ macro_rules! define_fp2_core {
                 // now return the fourth root. If any of the r are
                 // falsey, we return 0
                 let r = r1 & r2 & r3;
-                self.x0.set_select(&Fp::ZERO, &y0, r);
-                self.x1.set_select(&Fp::ZERO, &y1, r);
+                self.x0.set_select(&<$Fp>::ZERO, &y0, r);
+                self.x1.set_select(&<$Fp>::ZERO, &y1, r);
 
                 // Sign mangement: negate the result if needed.
                 let x0odd = ((self.x0.encode()[0] as u32) & 1).wrapping_neg();
@@ -605,8 +607,8 @@ macro_rules! define_fp2_core {
 
             pub fn encode(self) -> [u8; Self::ENCODED_LENGTH] {
                 let mut r = [0u8; Self::ENCODED_LENGTH];
-                r[..Fp::ENCODED_LENGTH].copy_from_slice(&self.x0.encode());
-                r[Fp::ENCODED_LENGTH..].copy_from_slice(&self.x1.encode());
+                r[..<$Fp>::ENCODED_LENGTH].copy_from_slice(&self.x0.encode());
+                r[<$Fp>::ENCODED_LENGTH..].copy_from_slice(&self.x1.encode());
                 r
             }
 
@@ -614,24 +616,27 @@ macro_rules! define_fp2_core {
                 if buf.len() != Self::ENCODED_LENGTH {
                     return (Self::ZERO, 0);
                 }
-                let (mut x0, c0) = Fp::decode(&buf[..Fp::ENCODED_LENGTH]);
-                let (mut x1, c1) = Fp::decode(&buf[Fp::ENCODED_LENGTH..]);
+                let (mut x0, c0) = <$Fp>::decode(&buf[..<$Fp>::ENCODED_LENGTH]);
+                let (mut x1, c1) = <$Fp>::decode(&buf[<$Fp>::ENCODED_LENGTH..]);
                 let cx = c0 & c1;
-                x0.set_cond(&Fp::ZERO, !cx);
-                x1.set_cond(&Fp::ZERO, !cx);
+                x0.set_cond(&<$Fp>::ZERO, !cx);
+                x1.set_cond(&<$Fp>::ZERO, !cx);
                 (Self { x0, x1 }, cx)
             }
 
             /// Set this structure to a random field element (indistinguishable
             /// from uniform generation).
-            pub fn set_rand<T: CryptoRng + RngCore>(&mut self, rng: &mut T) {
+            pub fn set_rand<T: ::rand_core::CryptoRng + ::rand_core::RngCore>(
+                &mut self,
+                rng: &mut T,
+            ) {
                 self.x0.set_rand(rng);
                 self.x1.set_rand(rng);
             }
 
             /// Return a new random field element (indistinguishable from
             /// uniform generation).
-            pub fn rand<T: CryptoRng + RngCore>(rng: &mut T) -> Self {
+            pub fn rand<T: ::rand_core::CryptoRng + ::rand_core::RngCore>(rng: &mut T) -> Self {
                 let mut x = Self::ZERO;
                 x.set_rand(rng);
                 x
@@ -639,7 +644,10 @@ macro_rules! define_fp2_core {
 
             /// Set this structure to a random non-square field element
             /// (indistinguishable from uniform generation).
-            pub fn set_rand_nonsquare<T: CryptoRng + RngCore>(&mut self, rng: &mut T) {
+            pub fn set_rand_nonsquare<T: ::rand_core::CryptoRng + ::rand_core::RngCore>(
+                &mut self,
+                rng: &mut T,
+            ) {
                 // We get a random non-square by getting a random non-zero
                 // value, squaring it, and multiplying by a known non-square.
                 // The loop handles the case of getting zero randomly, which
@@ -657,7 +665,10 @@ macro_rules! define_fp2_core {
 
             /// Return a new random non-square field element
             /// (indistinguishable from uniform generation).
-            pub fn rand_nonsquare<T: CryptoRng + RngCore>(self, rng: &mut T) -> Self {
+            pub fn rand_nonsquare<T: ::rand_core::CryptoRng + ::rand_core::RngCore>(
+                self,
+                rng: &mut T,
+            ) -> Self {
                 let mut x = Self::ZERO;
                 x.set_rand_nonsquare(rng);
                 x
@@ -793,270 +804,272 @@ macro_rules! define_fp2_core {
 
         // ========================================================================
 
-        impl fmt::Display for Fp2 {
-            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        impl ::std::fmt::Display for $name {
+            fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
                 let r = self.encode();
 
-                let x0_bytes = &r[..Fp::ENCODED_LENGTH];
-                let x1_bytes = &r[Fp::ENCODED_LENGTH..];
+                let x0_bytes = &r[..<$Fp>::ENCODED_LENGTH];
+                let x1_bytes = &r[<$Fp>::ENCODED_LENGTH..];
 
-                let x0_big = BigInt::from_bytes_le(Sign::Plus, x0_bytes);
-                let x1_big = BigInt::from_bytes_le(Sign::Plus, x1_bytes);
+                let x0_big =
+                    ::num_bigint::BigInt::from_bytes_le(::num_bigint::Sign::Plus, x0_bytes);
+                let x1_big =
+                    ::num_bigint::BigInt::from_bytes_le(::num_bigint::Sign::Plus, x1_bytes);
 
                 write!(f, "i*{} + {}", x1_big, x0_big)
             }
         }
 
-        impl Add<Fp2> for Fp2 {
-            type Output = Fp2;
+        impl ::core::ops::Add<$name> for $name {
+            type Output = $name;
 
             #[inline(always)]
-            fn add(self, other: Fp2) -> Fp2 {
+            fn add(self, other: $name) -> $name {
                 let mut r = self;
                 r.set_add(&other);
                 r
             }
         }
 
-        impl Add<&Fp2> for Fp2 {
-            type Output = Fp2;
+        impl ::core::ops::Add<&$name> for $name {
+            type Output = $name;
 
             #[inline(always)]
-            fn add(self, other: &Fp2) -> Fp2 {
+            fn add(self, other: &$name) -> $name {
                 let mut r = self;
                 r.set_add(other);
                 r
             }
         }
 
-        impl Add<Fp2> for &Fp2 {
-            type Output = Fp2;
+        impl ::core::ops::Add<$name> for &$name {
+            type Output = $name;
 
             #[inline(always)]
-            fn add(self, other: Fp2) -> Fp2 {
+            fn add(self, other: $name) -> $name {
                 let mut r = *self;
                 r.set_add(&other);
                 r
             }
         }
 
-        impl Add<&Fp2> for &Fp2 {
-            type Output = Fp2;
+        impl ::core::ops::Add<&$name> for &$name {
+            type Output = $name;
 
             #[inline(always)]
-            fn add(self, other: &Fp2) -> Fp2 {
+            fn add(self, other: &$name) -> $name {
                 let mut r = *self;
                 r.set_add(other);
                 r
             }
         }
 
-        impl AddAssign<Fp2> for Fp2 {
+        impl ::core::ops::AddAssign<$name> for $name {
             #[inline(always)]
-            fn add_assign(&mut self, other: Fp2) {
+            fn add_assign(&mut self, other: $name) {
                 self.set_add(&other);
             }
         }
 
-        impl AddAssign<&Fp2> for Fp2 {
+        impl ::core::ops::AddAssign<&$name> for $name {
             #[inline(always)]
-            fn add_assign(&mut self, other: &Fp2) {
+            fn add_assign(&mut self, other: &$name) {
                 self.set_add(other);
             }
         }
 
-        impl Div<Fp2> for Fp2 {
-            type Output = Fp2;
+        impl ::core::ops::Div<$name> for $name {
+            type Output = $name;
 
             #[inline(always)]
-            fn div(self, other: Fp2) -> Fp2 {
+            fn div(self, other: $name) -> $name {
                 let mut r = self;
                 r.set_div(&other);
                 r
             }
         }
 
-        impl Div<&Fp2> for Fp2 {
-            type Output = Fp2;
+        impl ::core::ops::Div<&$name> for $name {
+            type Output = $name;
 
             #[inline(always)]
-            fn div(self, other: &Fp2) -> Fp2 {
+            fn div(self, other: &$name) -> $name {
                 let mut r = self;
                 r.set_div(other);
                 r
             }
         }
 
-        impl Div<Fp2> for &Fp2 {
-            type Output = Fp2;
+        impl ::core::ops::Div<$name> for &$name {
+            type Output = $name;
 
             #[inline(always)]
-            fn div(self, other: Fp2) -> Fp2 {
+            fn div(self, other: $name) -> $name {
                 let mut r = *self;
                 r.set_div(&other);
                 r
             }
         }
 
-        impl Div<&Fp2> for &Fp2 {
-            type Output = Fp2;
+        impl ::core::ops::Div<&$name> for &$name {
+            type Output = $name;
 
             #[inline(always)]
-            fn div(self, other: &Fp2) -> Fp2 {
+            fn div(self, other: &$name) -> $name {
                 let mut r = *self;
                 r.set_div(other);
                 r
             }
         }
 
-        impl DivAssign<Fp2> for Fp2 {
+        impl ::core::ops::DivAssign<$name> for $name {
             #[inline(always)]
-            fn div_assign(&mut self, other: Fp2) {
+            fn div_assign(&mut self, other: $name) {
                 self.set_div(&other);
             }
         }
 
-        impl DivAssign<&Fp2> for Fp2 {
+        impl ::core::ops::DivAssign<&$name> for $name {
             #[inline(always)]
-            fn div_assign(&mut self, other: &Fp2) {
+            fn div_assign(&mut self, other: &$name) {
                 self.set_div(other);
             }
         }
 
-        impl Mul<Fp2> for Fp2 {
-            type Output = Fp2;
+        impl ::core::ops::Mul<$name> for $name {
+            type Output = $name;
 
             #[inline(always)]
-            fn mul(self, other: Fp2) -> Fp2 {
+            fn mul(self, other: $name) -> $name {
                 let mut r = self;
                 r.set_mul(&other);
                 r
             }
         }
 
-        impl Mul<&Fp2> for Fp2 {
-            type Output = Fp2;
+        impl ::core::ops::Mul<&$name> for $name {
+            type Output = $name;
 
             #[inline(always)]
-            fn mul(self, other: &Fp2) -> Fp2 {
+            fn mul(self, other: &$name) -> $name {
                 let mut r = self;
                 r.set_mul(other);
                 r
             }
         }
 
-        impl Mul<Fp2> for &Fp2 {
-            type Output = Fp2;
+        impl ::core::ops::Mul<$name> for &$name {
+            type Output = $name;
 
             #[inline(always)]
-            fn mul(self, other: Fp2) -> Fp2 {
+            fn mul(self, other: $name) -> $name {
                 let mut r = *self;
                 r.set_mul(&other);
                 r
             }
         }
 
-        impl Mul<&Fp2> for &Fp2 {
-            type Output = Fp2;
+        impl ::core::ops::Mul<&$name> for &$name {
+            type Output = $name;
 
             #[inline(always)]
-            fn mul(self, other: &Fp2) -> Fp2 {
+            fn mul(self, other: &$name) -> $name {
                 let mut r = *self;
                 r.set_mul(other);
                 r
             }
         }
 
-        impl MulAssign<Fp2> for Fp2 {
+        impl ::core::ops::MulAssign<$name> for $name {
             #[inline(always)]
-            fn mul_assign(&mut self, other: Fp2) {
+            fn mul_assign(&mut self, other: $name) {
                 self.set_mul(&other);
             }
         }
 
-        impl MulAssign<&Fp2> for Fp2 {
+        impl ::core::ops::MulAssign<&$name> for $name {
             #[inline(always)]
-            fn mul_assign(&mut self, other: &Fp2) {
+            fn mul_assign(&mut self, other: &$name) {
                 self.set_mul(other);
             }
         }
 
-        impl Neg for Fp2 {
-            type Output = Fp2;
+        impl ::core::ops::Neg for $name {
+            type Output = $name;
 
             #[inline(always)]
-            fn neg(self) -> Fp2 {
+            fn neg(self) -> $name {
                 let mut r = self;
                 r.set_neg();
                 r
             }
         }
 
-        impl Neg for &Fp2 {
-            type Output = Fp2;
+        impl ::core::ops::Neg for &$name {
+            type Output = $name;
 
             #[inline(always)]
-            fn neg(self) -> Fp2 {
+            fn neg(self) -> $name {
                 let mut r = *self;
                 r.set_neg();
                 r
             }
         }
 
-        impl Sub<Fp2> for Fp2 {
-            type Output = Fp2;
+        impl ::core::ops::Sub<$name> for $name {
+            type Output = $name;
 
             #[inline(always)]
-            fn sub(self, other: Fp2) -> Fp2 {
+            fn sub(self, other: $name) -> $name {
                 let mut r = self;
                 r.set_sub(&other);
                 r
             }
         }
 
-        impl Sub<&Fp2> for Fp2 {
-            type Output = Fp2;
+        impl ::core::ops::Sub<&$name> for $name {
+            type Output = $name;
 
             #[inline(always)]
-            fn sub(self, other: &Fp2) -> Fp2 {
+            fn sub(self, other: &$name) -> $name {
                 let mut r = self;
                 r.set_sub(other);
                 r
             }
         }
 
-        impl Sub<Fp2> for &Fp2 {
-            type Output = Fp2;
+        impl ::core::ops::Sub<$name> for &$name {
+            type Output = $name;
 
             #[inline(always)]
-            fn sub(self, other: Fp2) -> Fp2 {
+            fn sub(self, other: $name) -> $name {
                 let mut r = *self;
                 r.set_sub(&other);
                 r
             }
         }
 
-        impl Sub<&Fp2> for &Fp2 {
-            type Output = Fp2;
+        impl ::core::ops::Sub<&$name> for &$name {
+            type Output = $name;
 
             #[inline(always)]
-            fn sub(self, other: &Fp2) -> Fp2 {
+            fn sub(self, other: &$name) -> $name {
                 let mut r = *self;
                 r.set_sub(other);
                 r
             }
         }
 
-        impl SubAssign<Fp2> for Fp2 {
+        impl ::core::ops::SubAssign<$name> for $name {
             #[inline(always)]
-            fn sub_assign(&mut self, other: Fp2) {
+            fn sub_assign(&mut self, other: $name) {
                 self.set_sub(&other);
             }
         }
 
-        impl SubAssign<&Fp2> for Fp2 {
+        impl ::core::ops::SubAssign<&$name> for $name {
             #[inline(always)]
-            fn sub_assign(&mut self, other: &Fp2) {
+            fn sub_assign(&mut self, other: &$name) {
                 self.set_sub(other);
             }
         }
@@ -1070,70 +1083,65 @@ pub(crate) use define_fp2_core;
 // Macro expectations:
 #[cfg(test)]
 macro_rules! define_fp2_tests {
-    () => {
-        use super::{Fp, Fp2};
-        use num_bigint::{BigInt, Sign};
-        use sha2::{Digest, Sha256};
-
+    ($Fp:ty, $Fp2:ty) => {
         fn check_fp2_ops(va: &[u8], vb: &[u8], with_sqrt_and_fourth_root: bool) {
-            let mut zpww = [0u32; Fp::N * 2];
-            for i in 0..Fp::N {
-                zpww[2 * i] = Fp::MODULUS[i] as u32;
-                zpww[2 * i + 1] = (Fp::MODULUS[i] >> 32) as u32;
+            let mut zpww = [0u32; <$Fp>::N * 2];
+            for i in 0..<$Fp>::N {
+                zpww[2 * i] = <$Fp>::MODULUS[i] as u32;
+                zpww[2 * i + 1] = (<$Fp>::MODULUS[i] >> 32) as u32;
             }
             let zp = BigInt::from_slice(Sign::Plus, &zpww);
 
             let alen = va.len() >> 1;
             let blen = vb.len() >> 1;
 
-            let a0 = Fp::decode_reduce(&va[..alen]);
-            let a1 = Fp::decode_reduce(&va[alen..]);
-            let b0 = Fp::decode_reduce(&vb[..blen]);
-            let b1 = Fp::decode_reduce(&vb[blen..]);
+            let a0 = <$Fp>::decode_reduce(&va[..alen]);
+            let a1 = <$Fp>::decode_reduce(&va[alen..]);
+            let b0 = <$Fp>::decode_reduce(&vb[..blen]);
+            let b1 = <$Fp>::decode_reduce(&vb[blen..]);
             let za0 = BigInt::from_bytes_le(Sign::Plus, &a0.encode());
             let za1 = BigInt::from_bytes_le(Sign::Plus, &a1.encode());
             let zb0 = BigInt::from_bytes_le(Sign::Plus, &b0.encode());
             let zb1 = BigInt::from_bytes_le(Sign::Plus, &b1.encode());
-            let a = Fp2::new(&a0, &a1);
-            let b = Fp2::new(&b0, &b1);
+            let a = <$Fp2>::new(&a0, &a1);
+            let b = <$Fp2>::new(&b0, &b1);
 
             let c = a + b;
             let vc = c.encode();
-            let zc0 = BigInt::from_bytes_le(Sign::Plus, &vc[..Fp::ENCODED_LENGTH]);
-            let zc1 = BigInt::from_bytes_le(Sign::Plus, &vc[Fp::ENCODED_LENGTH..]);
+            let zc0 = BigInt::from_bytes_le(Sign::Plus, &vc[..<$Fp>::ENCODED_LENGTH]);
+            let zc1 = BigInt::from_bytes_le(Sign::Plus, &vc[<$Fp>::ENCODED_LENGTH..]);
             let zd0 = (&za0 + &zb0) % &zp;
             let zd1 = (&za1 + &zb1) % &zp;
             assert!(zc0 == zd0 && zc1 == zd1);
 
             let c = a - b;
             let vc = c.encode();
-            let zc0 = BigInt::from_bytes_le(Sign::Plus, &vc[..Fp::ENCODED_LENGTH]);
-            let zc1 = BigInt::from_bytes_le(Sign::Plus, &vc[Fp::ENCODED_LENGTH..]);
+            let zc0 = BigInt::from_bytes_le(Sign::Plus, &vc[..<$Fp>::ENCODED_LENGTH]);
+            let zc1 = BigInt::from_bytes_le(Sign::Plus, &vc[<$Fp>::ENCODED_LENGTH..]);
             let zd0 = (&zp + &za0 - &zb0) % &zp;
             let zd1 = (&zp + &za1 - &zb1) % &zp;
             assert!(zc0 == zd0 && zc1 == zd1);
 
             let c = a * b;
             let vc = c.encode();
-            let zc0 = BigInt::from_bytes_le(Sign::Plus, &vc[..Fp::ENCODED_LENGTH]);
-            let zc1 = BigInt::from_bytes_le(Sign::Plus, &vc[Fp::ENCODED_LENGTH..]);
+            let zc0 = BigInt::from_bytes_le(Sign::Plus, &vc[..<$Fp>::ENCODED_LENGTH]);
+            let zc1 = BigInt::from_bytes_le(Sign::Plus, &vc[<$Fp>::ENCODED_LENGTH..]);
             let zd0 = (&zp + ((&za0 * &zb0) % &zp) - ((&za1 * &zb1) % &zp)) % &zp;
             let zd1 = ((&za0 * &zb1) + (&za1 * &zb0)) % &zp;
             assert!(zc0 == zd0 && zc1 == zd1);
 
-            // let c = a.mul_new(b);
-            // let vc = c.encode();
-            // let zc0 = BigInt::from_bytes_le(Sign::Plus, &vc[..Fp::ENCODED_LENGTH]);
-            // let zc1 = BigInt::from_bytes_le(Sign::Plus, &vc[Fp::ENCODED_LENGTH..]);
-            // let zd0 = (&zp + ((&za0 * &zb0) % &zp) - ((&za1 * &zb1) % &zp)) % &zp;
-            // let zd1 = ((&za0 * &zb1) + (&za1 * &zb0)) % &zp;
-            // println!("4");
-            // assert!(zc0 == zd0 && zc1 == zd1);
+            let c = a.mul_new(b);
+            let vc = c.encode();
+            let zc0 = BigInt::from_bytes_le(Sign::Plus, &vc[..<$Fp>::ENCODED_LENGTH]);
+            let zc1 = BigInt::from_bytes_le(Sign::Plus, &vc[<$Fp>::ENCODED_LENGTH..]);
+            let zd0 = (&zp + ((&za0 * &zb0) % &zp) - ((&za1 * &zb1) % &zp)) % &zp;
+            let zd1 = ((&za0 * &zb1) + (&za1 * &zb0)) % &zp;
+            assert!(zc0 == zd0 && zc1 == zd1);
 
             let c = a.square();
             let vc = c.encode();
-            let zc0 = BigInt::from_bytes_le(Sign::Plus, &vc[..Fp::ENCODED_LENGTH]);
-            let zc1 = BigInt::from_bytes_le(Sign::Plus, &vc[Fp::ENCODED_LENGTH..]);
+            let zc0 = BigInt::from_bytes_le(Sign::Plus, &vc[..<$Fp>::ENCODED_LENGTH]);
+            let zc1 = BigInt::from_bytes_le(Sign::Plus, &vc[<$Fp>::ENCODED_LENGTH..]);
             let zd0 = (&zp + ((&za0 * &za0) % &zp) - ((&za1 * &za1) % &zp)) % &zp;
             let zd1 = ((&za0 * &za1) + (&za1 * &za0)) % &zp;
             assert!(zc0 == zd0 && zc1 == zd1);
@@ -1144,8 +1152,8 @@ macro_rules! define_fp2_tests {
             } else {
                 let c = c * b;
                 let vc = c.encode();
-                let zc0 = BigInt::from_bytes_le(Sign::Plus, &vc[..Fp::ENCODED_LENGTH]);
-                let zc1 = BigInt::from_bytes_le(Sign::Plus, &vc[Fp::ENCODED_LENGTH..]);
+                let zc0 = BigInt::from_bytes_le(Sign::Plus, &vc[..<$Fp>::ENCODED_LENGTH]);
+                let zc1 = BigInt::from_bytes_le(Sign::Plus, &vc[<$Fp>::ENCODED_LENGTH..]);
                 assert!(zc0 == za0 && zc1 == za1);
             }
 
@@ -1154,7 +1162,7 @@ macro_rules! define_fp2_tests {
                 assert!(c.iszero() == 0xFFFFFFFF);
             } else {
                 let c = c * b;
-                assert!(c.equals(&Fp2::ONE) == 0xFFFFFFFF);
+                assert!(c.equals(&<$Fp2>::ONE) == 0xFFFFFFFF);
             }
 
             if with_sqrt_and_fourth_root {
@@ -1163,15 +1171,15 @@ macro_rules! define_fp2_tests {
                 assert!(r == 0xFFFFFFFF);
                 assert!((c * c).equals(&e) == 0xFFFFFFFF);
                 let vc = c.encode();
-                let zc0 = BigInt::from_bytes_le(Sign::Plus, &vc[..Fp::ENCODED_LENGTH]);
-                let zc1 = BigInt::from_bytes_le(Sign::Plus, &vc[Fp::ENCODED_LENGTH..]);
+                let zc0 = BigInt::from_bytes_le(Sign::Plus, &vc[..<$Fp>::ENCODED_LENGTH]);
+                let zc1 = BigInt::from_bytes_le(Sign::Plus, &vc[<$Fp>::ENCODED_LENGTH..]);
                 assert!(zc0.bit(0) == false);
                 if zc0.sign() == Sign::NoSign {
                     assert!(zc1.bit(0) == false);
                 }
                 if a.iszero() == 0 {
                     assert!(e.legendre() == 1);
-                    let e = a * a * Fp2::NQR;
+                    let e = a * a * <$Fp2>::NQR;
                     assert!(e.legendre() == -1);
                     let (c, r) = e.sqrt();
                     assert!(r == 0);
@@ -1183,7 +1191,7 @@ macro_rules! define_fp2_tests {
                 }
 
                 if a0.iszero() == 0 {
-                    let f = Fp2::new(&a0, &Fp::ZERO);
+                    let f = <$Fp2>::new(&a0, &<$Fp>::ZERO);
                     let (c, r) = f.sqrt();
                     assert!(r == 0xFFFFFFFF);
                     assert!((c * c).equals(&f) == 0xFFFFFFFF);
@@ -1203,8 +1211,8 @@ macro_rules! define_fp2_tests {
 
         #[test]
         fn fp2_ops() {
-            let mut va = [0u8; (2 * Fp::ENCODED_LENGTH + 64) & !31usize];
-            let mut vb = [0u8; (2 * Fp::ENCODED_LENGTH + 64) & !31usize];
+            let mut va = [0u8; (2 * <$Fp>::ENCODED_LENGTH + 64) & !31usize];
+            let mut vb = [0u8; (2 * <$Fp>::ENCODED_LENGTH + 64) & !31usize];
             for i in 0..100 {
                 let mut sh = Sha256::new();
                 for j in 0..(va.len() >> 5) {

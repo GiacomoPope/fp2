@@ -1,5 +1,5 @@
 [package]
-name = "sqisign_rs"
+name = "fp2_rs"
 version = "0.1.0"
 edition = "2021"
 
@@ -14,21 +14,3 @@ sha3 = "0.10.6"
 
 [dev-dependencies]
 criterion = { version = "0.4", features = ["html_reports"] }
-
-# A benchmark for the cost of multiplications, squares and inversions for the
-# three base fields. Used to compute optimat strategies.
-
-[[bench]]
-name = "fp255_arithmetic"
-path = "benches/fp255.rs"
-harness = false
-
-[[bench]]
-name = "fp251_arithmetic"
-path = "benches/fp251.rs"
-harness = false
-
-[[bench]]
-name = "fp251_arithmetic_generic"
-path = "benches/fp251_generic.rs"
-harness = false
