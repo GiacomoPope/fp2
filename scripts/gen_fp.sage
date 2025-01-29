@@ -22,12 +22,12 @@ for the macros fp_gen.rs and fp2_gen.rs
 """
 
 proof.all(False)
-# ea = 131
-# eb = 78
-# A = 2**ea
-# B = 3**eb
-# p = A * B - 1
-p = 5*2**248 - 1
+ea = 74
+eb = 41
+A = 2**ea
+B = 3**eb
+p = A * B - 1
+# p = 5*2**248 - 1
 assert p.is_prime()
 
 def to_little_u64(n):
@@ -119,34 +119,40 @@ assert not F([NQR_RE_VAL, 1]).is_square()
 NQR_RE_VAL = to_little_u64(2**(64*N) * NQR_RE_VAL % p)
 
 str = f"""
+// Fp{BITLEN}: a finite field element GF(p) with p = 3 mod 4. 
+// Contents are opaque, all functions are constant-time.
+// Macro input generated with scripts/gen_fp.sage
 crate::finitefield::fp_gen::define_fp_core!(
-    Fp{BITLEN},
-    {N}_usize,
-    {BITLEN}_usize,
-    [{MODULUS}],
-    [{HALF_MODULUS}],
-    [{R_VAL}],
-    [{MINUS_R_VAL}],
-    [{DR_VAL}],
-    [{TR_VAL}],
-    [{QR_VAL}],
-    [{R2_VAL}],
-    {P0I}_u64,
-    [{TFIXDIV_VAL}],
-    [{TDEC_VAL}],
-    {WIN_LEN}_usize,
-    {SQRT_EH},
-    {SQRT_EL}_usize,
-    {FOURTH_ROOT_EH},
-    {FOURTH_ROOT_EL}_usize,
-    {P1}_u64,
-    {P1DIV_M}_u64,
+    type_name = Fp{BITLEN},
+    words = {N}_usize,
+    bit_len = {BITLEN}_usize,
+    modulus = [{MODULUS}],
+    half_modulus = [{HALF_MODULUS}],
+    mont_r = [{R_VAL}],
+    neg_r = [{MINUS_R_VAL}],
+    two_r = [{DR_VAL}],
+    three_r = [{TR_VAL}],
+    four_r = [{QR_VAL}],
+    r_sqr = [{R2_VAL}],
+    minus_p_inv = {P0I}_u64,
+    div_correction = [{TFIXDIV_VAL}],
+    reduce_const = [{TDEC_VAL}],
+    window_len = {WIN_LEN}_usize,
+    sqrt_el = {SQRT_EL}_usize,
+    sqrt_eh = {SQRT_EH},
+    fourth_root_el = {FOURTH_ROOT_EL}_usize,
+    fourth_root_eh = {FOURTH_ROOT_EH},
+    p1 = {P1}_u64,
+    p1_div_m = {P1DIV_M}_u64,
 );
 
+// Fp{BITLEN}Ext: a finite field element GF(p^2) with modulus x^2 + 1. 
+// Contents are opaque, all functions are constant-time.
+// Macro input generated with scripts/gen_fp.sage
 crate::finitefield::fp2_gen::define_fp2_core!(
-    Fp{BITLEN}Ext,
-    crate::fields::Fp{BITLEN},
-    [{NQR_RE_VAL}]
+    type_name = Fp{BITLEN}Ext,
+    base_field = crate::fields::Fp{BITLEN},
+    nqr_re = [{NQR_RE_VAL}]
 );
 
 #[cfg(test)]
@@ -156,7 +162,7 @@ mod fp{BITLEN}_tests {{
 
     crate::finitefield::fp_gen::define_fp_tests!(Fp{BITLEN});
     crate::finitefield::fp2_gen::define_fp2_tests!(Fp{BITLEN}, Fp{BITLEN}Ext);
-}};
+}}
 """
 
 print(str)
