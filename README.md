@@ -3,10 +3,9 @@
 [![Build Status][build-image]][build-link]
 
 An efficient, flexible and constant time Rust implementation of finite fields 
-$GF(p)$ and $GF(p^2)$ where $p \equiv 3 \pmod 4$. Used currently for various Rust implementations of isogeny-based cryptographic protocols.
+$\mathbb{F}_{p}$ and $\mathbb{F}_{p^2}$ where $p \equiv 3 \pmod 4$. Used currently for various Rust implementations of isogeny-based cryptographic protocols.
 
-
-## Motivation
+### Motivation
 
 These two macros have ended up being stuck inside every rust crypto thing I've written recently for isogeny-based crypto. The idea of this repository is to dedicate a central place to work on them to avoid there being many related but incompatible versions throughout my projects.
 
