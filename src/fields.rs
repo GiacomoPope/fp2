@@ -130,7 +130,7 @@ crate::finitefield::fp_gen::define_fp_core!(
 crate::finitefield::fp2_gen::define_fp2_core!(
     type_name = Fp139Ext,
     base_field = crate::fields::Fp139,
-    nqr_re = [0xB3F48FE34D46EFAA, 0xF314F2E6FA6E0B8E, 0x00000000000003C5]
+    nqr_re = [0x0143B0718BD916DA, 0x349A32A6E5E6C800, 0x000000000000043B]
 );
 
 // Fp251Ext: a finite field element GF(p^2) with modulus x^2 + 1.
@@ -140,10 +140,10 @@ crate::finitefield::fp2_gen::define_fp2_core!(
     type_name = Fp251Ext,
     base_field = crate::fields::Fp251,
     nqr_re = [
-        0x104AEFD09BF45BF0,
-        0xDA5FC9924601A4F5,
-        0x9B25B542062AB710,
-        0x01B6338B8D91FB50
+        0x0000000000000100,
+        0x0000000000000000,
+        0x0000000000000000,
+        0x0000000000000000
     ]
 );
 
