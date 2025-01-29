@@ -75,10 +75,8 @@ macro_rules! define_fp_core {
             umull_x2_add,
         };
         use core::convert::TryFrom;
-        use core::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
         use num_bigint::{BigInt, Sign};
         use rand_core::{CryptoRng, RngCore};
-        use std::fmt;
 
         /// A finite field element. Contents are opaque.
         /// All functions are constant-time.
@@ -1589,8 +1587,8 @@ macro_rules! define_fp_core {
 
         // ========================================================================
 
-        impl fmt::Display for $name {
-            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        impl ::std::fmt::Display for $name {
+            fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
                 let v_bytes = self.encode();
                 let v_big = BigInt::from_bytes_le(Sign::Plus, &v_bytes);
 
@@ -1598,7 +1596,7 @@ macro_rules! define_fp_core {
             }
         }
 
-        impl Add<$name> for $name {
+        impl ::core::ops::Add<$name> for $name {
             type Output = $name;
 
             #[inline(always)]
@@ -1609,7 +1607,7 @@ macro_rules! define_fp_core {
             }
         }
 
-        impl Add<&$name> for $name {
+        impl ::core::ops::Add<&$name> for $name {
             type Output = $name;
 
             #[inline(always)]
@@ -1620,7 +1618,7 @@ macro_rules! define_fp_core {
             }
         }
 
-        impl Add<$name> for &$name {
+        impl ::core::ops::Add<$name> for &$name {
             type Output = $name;
 
             #[inline(always)]
@@ -1631,7 +1629,7 @@ macro_rules! define_fp_core {
             }
         }
 
-        impl Add<&$name> for &$name {
+        impl ::core::ops::Add<&$name> for &$name {
             type Output = $name;
 
             #[inline(always)]
@@ -1642,21 +1640,21 @@ macro_rules! define_fp_core {
             }
         }
 
-        impl AddAssign<$name> for $name {
+        impl ::core::ops::AddAssign<$name> for $name {
             #[inline(always)]
             fn add_assign(&mut self, other: $name) {
                 self.set_add(&other);
             }
         }
 
-        impl AddAssign<&$name> for $name {
+        impl ::core::ops::AddAssign<&$name> for $name {
             #[inline(always)]
             fn add_assign(&mut self, other: &$name) {
                 self.set_add(other);
             }
         }
 
-        impl Div<$name> for $name {
+        impl ::core::ops::Div<$name> for $name {
             type Output = $name;
 
             #[inline(always)]
@@ -1667,7 +1665,7 @@ macro_rules! define_fp_core {
             }
         }
 
-        impl Div<&$name> for $name {
+        impl ::core::ops::Div<&$name> for $name {
             type Output = $name;
 
             #[inline(always)]
@@ -1678,7 +1676,7 @@ macro_rules! define_fp_core {
             }
         }
 
-        impl Div<$name> for &$name {
+        impl ::core::ops::Div<$name> for &$name {
             type Output = $name;
 
             #[inline(always)]
@@ -1689,7 +1687,7 @@ macro_rules! define_fp_core {
             }
         }
 
-        impl Div<&$name> for &$name {
+        impl ::core::ops::Div<&$name> for &$name {
             type Output = $name;
 
             #[inline(always)]
@@ -1700,21 +1698,21 @@ macro_rules! define_fp_core {
             }
         }
 
-        impl DivAssign<$name> for $name {
+        impl ::core::ops::DivAssign<$name> for $name {
             #[inline(always)]
             fn div_assign(&mut self, other: $name) {
                 self.set_div(&other);
             }
         }
 
-        impl DivAssign<&$name> for $name {
+        impl ::core::ops::DivAssign<&$name> for $name {
             #[inline(always)]
             fn div_assign(&mut self, other: &$name) {
                 self.set_div(other);
             }
         }
 
-        impl Mul<$name> for $name {
+        impl ::core::ops::Mul<$name> for $name {
             type Output = $name;
 
             #[inline(always)]
@@ -1725,7 +1723,7 @@ macro_rules! define_fp_core {
             }
         }
 
-        impl Mul<&$name> for $name {
+        impl ::core::ops::Mul<&$name> for $name {
             type Output = $name;
 
             #[inline(always)]
@@ -1736,7 +1734,7 @@ macro_rules! define_fp_core {
             }
         }
 
-        impl Mul<$name> for &$name {
+        impl ::core::ops::Mul<$name> for &$name {
             type Output = $name;
 
             #[inline(always)]
@@ -1747,7 +1745,7 @@ macro_rules! define_fp_core {
             }
         }
 
-        impl Mul<&$name> for &$name {
+        impl ::core::ops::Mul<&$name> for &$name {
             type Output = $name;
 
             #[inline(always)]
@@ -1758,21 +1756,21 @@ macro_rules! define_fp_core {
             }
         }
 
-        impl MulAssign<$name> for $name {
+        impl ::core::ops::MulAssign<$name> for $name {
             #[inline(always)]
             fn mul_assign(&mut self, other: $name) {
                 self.set_mul(&other);
             }
         }
 
-        impl MulAssign<&$name> for $name {
+        impl ::core::ops::MulAssign<&$name> for $name {
             #[inline(always)]
             fn mul_assign(&mut self, other: &$name) {
                 self.set_mul(other);
             }
         }
 
-        impl Neg for $name {
+        impl ::core::ops::Neg for $name {
             type Output = $name;
 
             #[inline(always)]
@@ -1783,7 +1781,7 @@ macro_rules! define_fp_core {
             }
         }
 
-        impl Neg for &$name {
+        impl ::core::ops::Neg for &$name {
             type Output = $name;
 
             #[inline(always)]
@@ -1794,7 +1792,7 @@ macro_rules! define_fp_core {
             }
         }
 
-        impl Sub<$name> for $name {
+        impl ::core::ops::Sub<$name> for $name {
             type Output = $name;
 
             #[inline(always)]
@@ -1805,7 +1803,7 @@ macro_rules! define_fp_core {
             }
         }
 
-        impl Sub<&$name> for $name {
+        impl ::core::ops::Sub<&$name> for $name {
             type Output = $name;
 
             #[inline(always)]
@@ -1816,7 +1814,7 @@ macro_rules! define_fp_core {
             }
         }
 
-        impl Sub<$name> for &$name {
+        impl ::core::ops::Sub<$name> for &$name {
             type Output = $name;
 
             #[inline(always)]
@@ -1827,7 +1825,7 @@ macro_rules! define_fp_core {
             }
         }
 
-        impl Sub<&$name> for &$name {
+        impl ::core::ops::Sub<&$name> for &$name {
             type Output = $name;
 
             #[inline(always)]
@@ -1838,14 +1836,14 @@ macro_rules! define_fp_core {
             }
         }
 
-        impl SubAssign<$name> for $name {
+        impl ::core::ops::SubAssign<$name> for $name {
             #[inline(always)]
             fn sub_assign(&mut self, other: $name) {
                 self.set_sub(&other);
             }
         }
 
-        impl SubAssign<&$name> for $name {
+        impl ::core::ops::SubAssign<&$name> for $name {
             #[inline(always)]
             fn sub_assign(&mut self, other: &$name) {
                 self.set_sub(other);
