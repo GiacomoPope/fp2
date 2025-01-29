@@ -3,7 +3,7 @@
 [![Build Status][build-image]][build-link]
 
 An efficient, flexible and constant time Rust implementation of finite fields 
-$\mathbb{F}_{p}$ and $\mathbb{F}_{p^2}$ where $p \equiv 3 \pmod 4$. Used currently for various Rust implementations of isogeny-based cryptographic protocols.
+$\mathbb{F}\_{p}$ and $\mathbb{F}\_{p^2}$ where $p \equiv 3 \pmod 4$. Used currently for various Rust implementations of isogeny-based cryptographic protocols.
 
 ### Motivation
 
