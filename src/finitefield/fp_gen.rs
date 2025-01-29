@@ -70,10 +70,6 @@ macro_rules! define_fp_core {
         $P1:literal,
         $P1DIV_M:literal,
     ) => {
-        use crate::finitefield::utils64::{
-            addcarry_u64, lzcnt, sgnw, subborrow_u64, umull, umull_add, umull_add2, umull_x2,
-            umull_x2_add,
-        };
         /// A finite field element. Contents are opaque.
         /// All functions are constant-time.
         ///
