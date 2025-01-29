@@ -67,6 +67,7 @@ macro_rules! define_fp2_core {
             };
 
             pub const ENCODED_LENGTH: usize = 2 * <$Fp>::ENCODED_LENGTH;
+            pub const CHAR_BIT_LENGTH: usize = <$Fp>::BIT_LENGTH;
 
             /// Non-quadratic residue.
             pub const NQR: Self = Self {
@@ -1078,6 +1079,7 @@ macro_rules! define_fp2_core {
 
 // Macro expectations:
 #[cfg_attr(feature = "test_macros", macro_export)]
+#[cfg_attr(not(feature = "test_macros"), allow(unused_macros))]
 macro_rules! define_fp2_tests {
     ($Fp:ty, $Fp2:ty) => {
         fn check_fp2_ops(va: &[u8], vb: &[u8], with_sqrt_and_fourth_root: bool) {

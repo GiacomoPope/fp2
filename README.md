@@ -11,3 +11,11 @@ cargo test --features test_macros
 ```
 
 TODO: can we automatically enable the feature flag `test_macros` when running `cargo test`?
+
+### Benchmarks
+
+Benchmarks can be run with:
+
+```
+RUSTFLAGS="-C target-cpu=native" cargo bench
+```

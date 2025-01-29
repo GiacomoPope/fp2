@@ -13,4 +13,9 @@ num-bigint = "0.4.3"
 sha2 = "0.10.2"
 
 [dev-dependencies]
-criterion = { version = "0.4", features = ["html_reports"] }
+criterion = { version = "0.5" }
+
+[[bench]]
+name = "benchmark_fp2"
+path = "benches/fp2_bench.rs"
+harness = false
