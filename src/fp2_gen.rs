@@ -21,7 +21,7 @@
 #[macro_export]
 macro_rules! define_fp2_core {
     (
-        type_name = $name:ident,
+        typename = $name:ident,
         base_field = $Fp:ty,
         nqr_re = $NQR_RE:expr
     ) => {

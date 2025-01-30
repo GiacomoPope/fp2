@@ -11,6 +11,8 @@ macro_rules! define_fp_tests {
                 zpww[2 * i] = <$Fp>::MODULUS[i] as u32;
                 zpww[2 * i + 1] = (<$Fp>::MODULUS[i] >> 32) as u32;
             }
+            println!("Hello {}", <$Fp>::BIT_LENGTH);
+
             let zp = ::num_bigint::BigInt::from_slice(::num_bigint::Sign::Plus, &zpww);
             let zpz = &zp << 64;
 

@@ -16,8 +16,6 @@
 //   modulus p is prime and larger than 2^64
 //   p = 7 mod 8 (required in square and fourth roots)
 //   defined constants:
-//      N (usize)                 number of u64 words needed
-//      BITLEN (usize)            modulus length in bits
 //      MODULUS ([u64; N])        modulus p (little-endian)
 //      HALF_MODULUS ([u64; N])   (p + 1)/2 (little-endian)
 //      R_VAL ([u64; N])          2^(64*N) mod p
@@ -47,10 +45,8 @@
 #[macro_export]
 macro_rules! define_fp_core {
     (
-        type_name = $name:ident, 
-        words = $N:literal,
-        bit_len = $BITLEN:literal,
-        modulus = $MODULUS:expr,  
+        typename = $typename:ident,
+        modulus = $MODULUS:expr,
         half_modulus = $HALF_MODULUS:expr,
         mont_r = $R_VAL:expr,
         neg_r = $MINUS_R_VAL:expr,
@@ -75,10 +71,12 @@ macro_rules! define_fp_core {
         /// A field element x is encoded into bytes by using the unsigned
         /// little-endian convention over the unique representant of x in the
         /// [0..(p-1)] range. There is no sign bit.
-        #[derive(Clone, Copy, Debug)]
-        pub struct $name([u64; $N]);
+        ///
 
-        impl $name {
+        #[derive(Clone, Copy, Debug)]
+        pub struct $typename([u64; $typename::N]);
+
+        impl $typename {
             // IMPLEMENTATION NOTES
             // --------------------
             //
@@ -97,35 +95,40 @@ macro_rules! define_fp_core {
             // use of Montgomery representation is not visible to other code using
             // this type.
 
-            pub const ZERO: Self = Self([0u64; $N]);
+            /// Modulus bit length.
+            pub const N: usize = $MODULUS.len();
+            pub const MODULUS: [u64; Self::N] = $MODULUS;
+            pub const BIT_LENGTH: usize =
+                (Self::N - 1) * 64 + (64 - Self::MODULUS[Self::N - 1].leading_zeros() as usize);
+            pub const ZERO: Self = Self([0u64; Self::N]);
             pub const ONE: Self = Self($R_VAL);
             pub const TWO: Self = Self($DR_VAL);
             pub const THREE: Self = Self($TR_VAL);
             pub const FOUR: Self = Self($QR_VAL);
             pub const MINUS_ONE: Self = Self($MINUS_R_VAL);
 
-            /// Modulus bit length.
-            pub const BIT_LENGTH: usize = $BITLEN;
-            pub const N: usize = $N;
-            pub const MODULUS: [u64; $N] = $MODULUS;
-
             /// Encoding length of a field element (in bytes). All elements
             /// always encode into exactly that many bytes. Encoding is
             /// canonical: a given field element has a unique valid encoding,
             /// and the decoding process verifies that this specific encoding
             /// was used.
-            pub const ENCODED_LENGTH: usize = ($BITLEN + 7) >> 3;
+            pub const ENCODED_LENGTH: usize = (Self::BIT_LENGTH + 7) >> 3;
 
             // R2 = R^2 mod p = Montgomery representation of R
             const R2: Self = Self($R2_VAL);
 
             // Multiplier for decode_reduce().
+            const CLEN: usize = 8 * (Self::N - 1);
             const TDEC: Self = Self($TDEC_VAL);
 
             // Corrective factor for division.
             const TFIXDIV: Self = Self($TFIXDIV_VAL);
 
-            pub const fn new(input: [u64; $N]) -> Self {
+            // TODO
+            const NUM1: usize = (2 * Self::BIT_LENGTH - 34) / 31;
+            const NUM2: usize = 2 * Self::BIT_LENGTH - 31 * Self::NUM1 - 2;
+
+            pub const fn new(input: [u64; Self::N]) -> Self {
                 return Self(input);
             }
 
@@ -168,7 +171,7 @@ macro_rules! define_fp_core {
             #[inline]
             pub fn iszero(self) -> u32 {
                 let mut x = self.0[0];
-                for i in 1..$N {
+                for i in 1..Self::N {
                     x |= self.0[i];
                 }
                 (!$crate::utils64::sgnw(x | x.wrapping_neg())) as u32
@@ -179,7 +182,7 @@ macro_rules! define_fp_core {
             #[inline(always)]
             pub fn equals(self, rhs: &Self) -> u32 {
                 let mut r = 0u64;
-                for i in 0..$N {
+                for i in 0..Self::N {
                     r |= self.0[i] ^ rhs.0[i];
                 }
                 (((r | r.wrapping_neg()) >> 63) as u32).wrapping_sub(1)
@@ -190,7 +193,7 @@ macro_rules! define_fp_core {
             fn set_add(&mut self, rhs: &Self) {
                 // raw addition.
                 let mut cc1 = 0;
-                for i in 0..$N {
+                for i in 0..Self::N {
                     let (d, ee) = $crate::utils64::addcarry_u64(self.0[i], rhs.0[i], cc1);
                     self.0[i] = d;
                     cc1 = ee;
@@ -198,8 +201,8 @@ macro_rules! define_fp_core {
 
                 // subtract modulus.
                 let mut cc2 = 0;
-                for i in 0..$N {
-                    let (d, ee) = $crate::utils64::subborrow_u64(self.0[i], $MODULUS[i], cc2);
+                for i in 0..Self::N {
+                    let (d, ee) = $crate::utils64::subborrow_u64(self.0[i], Self::MODULUS[i], cc2);
                     self.0[i] = d;
                     cc2 = ee;
                 }
@@ -207,8 +210,9 @@ macro_rules! define_fp_core {
                 // add back modulus if the result was negative, i.e. cc1 - cc2 < 0.
                 let mm = (cc1 as u64).wrapping_sub(cc2 as u64);
                 let mut cc = 0;
-                for i in 0..$N {
-                    let (d, ee) = $crate::utils64::addcarry_u64(self.0[i], mm & $MODULUS[i], cc);
+                for i in 0..Self::N {
+                    let (d, ee) =
+                        $crate::utils64::addcarry_u64(self.0[i], mm & Self::MODULUS[i], cc);
                     self.0[i] = d;
                     cc = ee;
                 }
@@ -219,7 +223,7 @@ macro_rules! define_fp_core {
             fn set_sub(&mut self, rhs: &Self) {
                 // raw subtraction
                 let mut cc = 0;
-                for i in 0..$N {
+                for i in 0..Self::N {
                     let (d, ee) = $crate::utils64::subborrow_u64(self.0[i], rhs.0[i], cc);
                     self.0[i] = d;
                     cc = ee;
@@ -228,8 +232,9 @@ macro_rules! define_fp_core {
                 // add back modulus if the result was negative
                 let mm = (cc as u64).wrapping_neg();
                 cc = 0;
-                for i in 0..$N {
-                    let (d, ee) = $crate::utils64::addcarry_u64(self.0[i], mm & $MODULUS[i], cc);
+                for i in 0..Self::N {
+                    let (d, ee) =
+                        $crate::utils64::addcarry_u64(self.0[i], mm & Self::MODULUS[i], cc);
                     self.0[i] = d;
                     cc = ee;
                 }
@@ -240,7 +245,7 @@ macro_rules! define_fp_core {
             pub fn set_neg(&mut self) {
                 // subtract from zero
                 let mut cc = 0;
-                for i in 0..$N {
+                for i in 0..Self::N {
                     let (d, ee) = $crate::utils64::subborrow_u64(0, self.0[i], cc);
                     self.0[i] = d;
                     cc = ee;
@@ -249,8 +254,9 @@ macro_rules! define_fp_core {
                 // add back the modulus if needed (i.e. if input was non-zero)
                 let mm = (cc as u64).wrapping_neg();
                 cc = 0;
-                for i in 0..$N {
-                    let (d, ee) = $crate::utils64::addcarry_u64(self.0[i], mm & $MODULUS[i], cc);
+                for i in 0..Self::N {
+                    let (d, ee) =
+                        $crate::utils64::addcarry_u64(self.0[i], mm & Self::MODULUS[i], cc);
                     self.0[i] = d;
                     cc = ee;
                 }
@@ -262,15 +268,16 @@ macro_rules! define_fp_core {
             // properly reduced, then the output is in [0..p] inclusive.
             #[inline]
             fn set_montyred(&mut self) {
-                for _ in 0..$N {
+                for _ in 0..Self::N {
                     let f = self.0[0].wrapping_mul($P0I);
-                    let (_, mut cc) = $crate::utils64::umull_add(f, $MODULUS[0], self.0[0]);
-                    for i in 1..$N {
-                        let (d, hi) = $crate::utils64::umull_add2(f, $MODULUS[i], self.0[i], cc);
+                    let (_, mut cc) = $crate::utils64::umull_add(f, Self::MODULUS[0], self.0[0]);
+                    for i in 1..Self::N {
+                        let (d, hi) =
+                            $crate::utils64::umull_add2(f, Self::MODULUS[i], self.0[i], cc);
                         self.0[i - 1] = d;
                         cc = hi;
                     }
-                    self.0[$N - 1] = cc;
+                    self.0[Self::N - 1] = cc;
                 }
             }
 
@@ -281,34 +288,34 @@ macro_rules! define_fp_core {
 
                 // combined muls + reduction
                 let mut cch = 0;
-                for i in 0..$N {
+                for i in 0..Self::N {
                     let f = rhs.0[i];
                     let (lo, mut cc1) = $crate::utils64::umull_add(f, self.0[0], t.0[0]);
                     let g = lo.wrapping_mul($P0I);
-                    let (_, mut cc2) = $crate::utils64::umull_add(g, $MODULUS[0], lo);
-                    for j in 1..$N {
+                    let (_, mut cc2) = $crate::utils64::umull_add(g, Self::MODULUS[0], lo);
+                    for j in 1..Self::N {
                         let (d, hi1) = $crate::utils64::umull_add2(f, self.0[j], t.0[j], cc1);
                         cc1 = hi1;
-                        let (d, hi2) = $crate::utils64::umull_add2(g, $MODULUS[j], d, cc2);
+                        let (d, hi2) = $crate::utils64::umull_add2(g, Self::MODULUS[j], d, cc2);
                         cc2 = hi2;
                         t.0[j - 1] = d;
                     }
                     let (d, ee) = $crate::utils64::addcarry_u64(cc1, cc2, cch);
-                    t.0[$N - 1] = d;
+                    t.0[Self::N - 1] = d;
                     cch = ee;
                 }
 
                 // final reduction: subtract modulus if necessary
                 let mut cc = 0;
-                for i in 0..$N {
-                    let (d, ee) = $crate::utils64::subborrow_u64(t.0[i], $MODULUS[i], cc);
+                for i in 0..Self::N {
+                    let (d, ee) = $crate::utils64::subborrow_u64(t.0[i], Self::MODULUS[i], cc);
                     t.0[i] = d;
                     cc = ee;
                 }
                 let mm = (cch as u64).wrapping_sub(cc as u64);
                 cc = 0;
-                for i in 0..$N {
-                    let (d, ee) = $crate::utils64::addcarry_u64(t.0[i], mm & $MODULUS[i], cc);
+                for i in 0..Self::N {
+                    let (d, ee) = $crate::utils64::addcarry_u64(t.0[i], mm & Self::MODULUS[i], cc);
                     self.0[i] = d;
                     cc = ee;
                 }
@@ -326,45 +333,45 @@ macro_rules! define_fp_core {
                 // probably not a very good idea.
 
                 // Compute the square over integers.
-                let mut t = [0u64; $N << 1];
+                let mut t = [0u64; Self::N << 1];
 
                 // sum_{i<j} a_i*a_j*2^(64*(i+j)) < 2^(64*(2*N-1))
                 // -> t[2*N-1] remains at zero
                 let f = self.0[0];
                 let (d, mut cc) = $crate::utils64::umull(f, self.0[1]);
                 t[1] = d;
-                for j in 2..$N {
+                for j in 2..Self::N {
                     let (d, hi) = $crate::utils64::umull_add(f, self.0[j], cc);
                     t[j] = d;
                     cc = hi;
                 }
-                t[$N] = cc;
-                for i in 1..($N - 1) {
+                t[Self::N] = cc;
+                for i in 1..(Self::N - 1) {
                     let f = self.0[i];
                     let (d, mut cc) = $crate::utils64::umull_add(f, self.0[i + 1], t[(i << 1) + 1]);
                     t[(i << 1) + 1] = d;
-                    for j in (i + 2)..$N {
+                    for j in (i + 2)..Self::N {
                         let (d, hi) = $crate::utils64::umull_add2(f, self.0[j], t[i + j], cc);
                         t[i + j] = d;
                         cc = hi;
                     }
-                    t[i + $N] = cc;
+                    t[i + Self::N] = cc;
                 }
 
                 // Double the partial sum.
                 // -> t contains sum_{i!=j} a_i*a_j*2^(64*(i+j))
                 let mut cc = 0;
-                for i in 1..(($N << 1) - 1) {
+                for i in 1..((Self::N << 1) - 1) {
                     let w = t[i];
                     let ee = w >> 63;
                     t[i] = (w << 1) | cc;
                     cc = ee;
                 }
-                t[($N << 1) - 1] = cc;
+                t[(Self::N << 1) - 1] = cc;
 
                 // Add the squares a_i*a_i*w^(64*2*i).
                 let mut cc = 0;
-                for i in 0..$N {
+                for i in 0..Self::N {
                     let (lo, hi) = $crate::utils64::umull(self.0[i], self.0[i]);
                     let (d0, ee) = $crate::utils64::addcarry_u64(lo, t[i << 1], cc);
                     let (d1, ee) = $crate::utils64::addcarry_u64(hi, t[(i << 1) + 1], ee);
@@ -379,10 +386,10 @@ macro_rules! define_fp_core {
                 //    value of at most p
                 //  - set_add() tolerates an input operand equal to p provided
                 //    that the sum is less than 2*p
-                self.0.copy_from_slice(&t[..$N]);
+                self.0.copy_from_slice(&t[..Self::N]);
                 self.set_montyred();
-                let mut y = Self([0u64; $N]);
-                y.0.copy_from_slice(&t[$N..]);
+                let mut y = Self([0u64; Self::N]);
+                y.0.copy_from_slice(&t[Self::N..]);
                 self.set_add(&y);
             }
 
@@ -399,7 +406,7 @@ macro_rules! define_fp_core {
             pub fn set_half(&mut self) {
                 let mm = (self.0[0] & 1).wrapping_neg();
                 let mut cc = 0;
-                for i in 0..($N - 1) {
+                for i in 0..(Self::N - 1) {
                     let (d, ee) = $crate::utils64::addcarry_u64(
                         (self.0[i] >> 1) | (self.0[i + 1] << 63),
                         mm & $HALF_MODULUS[i],
@@ -408,8 +415,12 @@ macro_rules! define_fp_core {
                     self.0[i] = d;
                     cc = ee;
                 }
-                let (d, _) = $crate::utils64::addcarry_u64(self.0[$N - 1] >> 1, mm & $HALF_MODULUS[$N - 1], cc);
-                self.0[$N - 1] = d;
+                let (d, _) = $crate::utils64::addcarry_u64(
+                    self.0[Self::N - 1] >> 1,
+                    mm & $HALF_MODULUS[Self::N - 1],
+                    cc,
+                );
+                self.0[Self::N - 1] = d;
             }
 
             /// Compute the half of this value.
@@ -426,11 +437,11 @@ macro_rules! define_fp_core {
                 // Double (as an integer) and subtract the modulus.
                 let mut cc = 0;
                 let mut tb = 0;
-                for i in 0..$N {
+                for i in 0..Self::N {
                     let w = self.0[i];
                     let t = (w << 1) | tb;
                     tb = w >> 63;
-                    let (d, ee) = $crate::utils64::subborrow_u64(t, $MODULUS[i], cc);
+                    let (d, ee) = $crate::utils64::subborrow_u64(t, Self::MODULUS[i], cc);
                     self.0[i] = d;
                     cc = ee;
                 }
@@ -438,8 +449,9 @@ macro_rules! define_fp_core {
                 // add back modulus if the result was negative
                 let mm = tb.wrapping_sub(cc as u64);
                 cc = 0;
-                for i in 0..$N {
-                    let (d, ee) = $crate::utils64::addcarry_u64(self.0[i], mm & $MODULUS[i], cc);
+                for i in 0..Self::N {
+                    let (d, ee) =
+                        $crate::utils64::addcarry_u64(self.0[i], mm & Self::MODULUS[i], cc);
                     self.0[i] = d;
                     cc = ee;
                 }
@@ -509,7 +521,7 @@ macro_rules! define_fp_core {
                 // Do the product over integers.
                 let (d, mut hi) = $crate::utils64::umull(self.0[0], ak as u64);
                 self.0[0] = d;
-                for i in 1..$N {
+                for i in 1..Self::N {
                     let (d, ee) = $crate::utils64::umull_add(self.0[i], ak as u64, hi);
                     self.0[i] = d;
                     hi = ee;
@@ -543,15 +555,15 @@ macro_rules! define_fp_core {
                 // is more reliably achieved.)
 
                 // Extract top word of x.
-                let bl = $BITLEN & 63;
+                let bl = Self::BIT_LENGTH & 63;
                 let x1 = if bl == 0 {
-                    (self.0[$N - 1] >> 32) | (hi << 32)
+                    (self.0[Self::N - 1] >> 32) | (hi << 32)
                 } else if bl < 32 {
-                    (self.0[$N - 1] << (32 - bl)) | (self.0[$N - 2] >> (32 + bl))
+                    (self.0[Self::N - 1] << (32 - bl)) | (self.0[Self::N - 2] >> (32 + bl))
                 } else if bl == 32 {
-                    self.0[$N - 1]
+                    self.0[Self::N - 1]
                 } else {
-                    (hi << (96 - bl)) | (self.0[$N - 1] >> (bl - 32))
+                    (hi << (96 - bl)) | (self.0[Self::N - 1] >> (bl - 32))
                 };
 
                 // Compute b = floor(x1/p1).
@@ -564,8 +576,8 @@ macro_rules! define_fp_core {
                 // Subtract b*p from x.
                 let mut cc1 = 0;
                 let mut cc2 = 0;
-                for i in 0..$N {
-                    let (d, ee) = $crate::utils64::umull_add(b, $MODULUS[i], cc1);
+                for i in 0..Self::N {
+                    let (d, ee) = $crate::utils64::umull_add(b, Self::MODULUS[i], cc1);
                     cc1 = ee;
                     let (d, ee) = $crate::utils64::subborrow_u64(self.0[i], d, cc2);
                     self.0[i] = d;
@@ -577,8 +589,9 @@ macro_rules! define_fp_core {
                 for _ in 0..2 {
                     let m = $crate::utils64::sgnw(hi);
                     let mut cc = 0;
-                    for i in 0..$N {
-                        let (d, ee) = $crate::utils64::addcarry_u64(self.0[i], m & $MODULUS[i], cc);
+                    for i in 0..Self::N {
+                        let (d, ee) =
+                            $crate::utils64::addcarry_u64(self.0[i], m & Self::MODULUS[i], cc);
                         self.0[i] = d;
                         cc = ee;
                     }
@@ -603,7 +616,7 @@ macro_rules! define_fp_core {
             #[inline]
             pub fn set_select(&mut self, a: &Self, b: &Self, ctl: u32) {
                 let c = (ctl as u64) | ((ctl as u64) << 32);
-                for i in 0..$N {
+                for i in 0..Self::N {
                     let wa = a.0[i];
                     let wb = b.0[i];
                     self.0[i] = wa ^ (c & (wa ^ wb));
@@ -626,7 +639,7 @@ macro_rules! define_fp_core {
             #[inline]
             pub fn set_cond(&mut self, rhs: &Self, ctl: u32) {
                 let c = (ctl as u64) | ((ctl as u64) << 32);
-                for i in 0..$N {
+                for i in 0..Self::N {
                     let wa = self.0[i];
                     let wb = rhs.0[i];
                     self.0[i] = wa ^ (c & (wa ^ wb));
@@ -648,7 +661,7 @@ macro_rules! define_fp_core {
             #[inline]
             pub fn condswap(a: &mut Self, b: &mut Self, ctl: u32) {
                 let c = (ctl as u64) | ((ctl as u64) << 32);
-                for i in 0..$N {
+                for i in 0..Self::N {
                     let wa = a.0[i];
                     let wb = b.0[i];
                     let wc = c & (wa ^ wb);
@@ -672,7 +685,7 @@ macro_rules! define_fp_core {
 
                 let (d, mut cc) = $crate::utils64::umull_x2(tu.0[0], f, tv.0[0], g);
                 self.0[0] = d;
-                for i in 1..$N {
+                for i in 1..Self::N {
                     let (d, hi) = $crate::utils64::umull_x2_add(tu.0[i], f, tv.0[i], g, cc);
                     self.0[i] = d;
                     cc = hi;
@@ -681,28 +694,29 @@ macro_rules! define_fp_core {
 
                 // Montgomery reduction (one round)
                 let k = self.0[0].wrapping_mul($P0I);
-                let (_, mut cc) = $crate::utils64::umull_add(k, $MODULUS[0], self.0[0]);
-                for i in 1..$N {
-                    let (d, hi) = $crate::utils64::umull_add2(k, $MODULUS[i], self.0[i], cc);
+                let (_, mut cc) = $crate::utils64::umull_add(k, Self::MODULUS[0], self.0[0]);
+                for i in 1..Self::N {
+                    let (d, hi) = $crate::utils64::umull_add2(k, Self::MODULUS[i], self.0[i], cc);
                     self.0[i - 1] = d;
                     cc = hi;
                 }
                 let (d, cc1) = $crate::utils64::addcarry_u64(up, cc, 0);
-                self.0[$N - 1] = d;
+                self.0[Self::N - 1] = d;
 
                 // |f| <= 2^62 and |g| <= 2^62, therefore |u*f + v*g| < p*2^63
                 // We added less than p*2^64, and divided by 2^64, so the result
                 // is less than 2*p and a single conditional subtraction is enough.
                 let mut cc2 = 0;
-                for i in 0..$N {
-                    let (d, ee) = $crate::utils64::subborrow_u64(self.0[i], $MODULUS[i], cc2);
+                for i in 0..Self::N {
+                    let (d, ee) = $crate::utils64::subborrow_u64(self.0[i], Self::MODULUS[i], cc2);
                     self.0[i] = d;
                     cc2 = ee;
                 }
                 let mm = (cc1 as u64).wrapping_sub(cc2 as u64);
                 let mut cc = 0;
-                for i in 0..$N {
-                    let (d, ee) = $crate::utils64::addcarry_u64(self.0[i], mm & $MODULUS[i], cc);
+                for i in 0..Self::N {
+                    let (d, ee) =
+                        $crate::utils64::addcarry_u64(self.0[i], mm & Self::MODULUS[i], cc);
                     self.0[i] = d;
                     cc = ee;
                 }
@@ -737,7 +751,7 @@ macro_rules! define_fp_core {
                 let mut cc1 = 0;
                 let mut cc2 = 0;
                 let mut cc3 = 0;
-                for i in 0..$N {
+                for i in 0..Self::N {
                     let (d1, ee1) = $crate::utils64::subborrow_u64(a.0[i] ^ sf, sf, cc1);
                     cc1 = ee1;
                     let (d2, ee2) = $crate::utils64::subborrow_u64(b.0[i] ^ sg, sg, cc2);
@@ -751,15 +765,15 @@ macro_rules! define_fp_core {
                     .wrapping_sub((cc2 as u64).wrapping_neg() & g);
 
                 // Right-shift the result by 31 bits.
-                for i in 0..($N - 1) {
+                for i in 0..(Self::N - 1) {
                     self.0[i] = (self.0[i] >> 31) | (self.0[i + 1] << 33);
                 }
-                self.0[$N - 1] = (self.0[$N - 1] >> 31) | (up << 33);
+                self.0[Self::N - 1] = (self.0[Self::N - 1] >> 31) | (up << 33);
 
                 // Negate the result if (a*f + b*g) was negative.
                 let w = $crate::utils64::sgnw(up);
                 let mut cc = 0;
-                for i in 0..$N {
+                for i in 0..Self::N {
                     let (d, ee) = $crate::utils64::subborrow_u64(self.0[i] ^ w, w, cc);
                     self.0[i] = d;
                     cc = ee;
@@ -801,7 +815,7 @@ macro_rules! define_fp_core {
                 //    https://eprint.iacr.org/2020/972
 
                 let mut a = *y;
-                let mut b = Self($MODULUS);
+                let mut b = Self(Self::MODULUS);
                 let mut u = *self;
                 let mut v = Self::ZERO;
 
@@ -809,8 +823,7 @@ macro_rules! define_fp_core {
                 // of a and b by at least 31, and that sum starts at 2*BITLEN
                 // (at most). We need to run it until the sum of the two lengths
                 // is at most 64.
-                const NUM1: usize = (2 * $BITLEN - 34) / 31;
-                for _ in 0..NUM1 {
+                for _ in 0..Self::NUM1 {
                     // Get approximations of a and b over 64 bits:
                     //  - If len(a) <= 64 and len(b) <= 64, then we just
                     //    use their values (low limbs).
@@ -823,7 +836,7 @@ macro_rules! define_fp_core {
                     let mut a_lo = 0u64;
                     let mut b_hi = 0u64;
                     let mut b_lo = 0u64;
-                    for j in (0..$N).rev() {
+                    for j in (0..Self::N).rev() {
                         let aw = a.0[j];
                         let bw = b.0[j];
                         a_hi ^= (a_hi ^ aw) & c_hi;
@@ -891,8 +904,6 @@ macro_rules! define_fp_core {
                     v = nv;
                 }
 
-                const NUM2: usize = 2 * $BITLEN - 31 * NUM1 - 2;
-
                 // If y is non-zero, then the final GCD is 1, and
                 // len(a) + len(b) <= NUM2 + 2 at this point (initially,
                 // len(a) + len(b) <= 2*BITLEN, and each outer iteration reduces
@@ -905,7 +916,7 @@ macro_rules! define_fp_core {
                 let mut g0 = 0u64;
                 let mut f1 = 0u64;
                 let mut g1 = 1u64;
-                for _ in 0..NUM2 {
+                for _ in 0..Self::NUM2 {
                     let a_odd = (xa & 1).wrapping_neg();
                     let (_, cc) = $crate::utils64::subborrow_u64(xa, xb, 0);
                     let swap = a_odd & (cc as u64).wrapping_neg();
@@ -932,7 +943,7 @@ macro_rules! define_fp_core {
                 // force the result to zero.
                 let w = !y.iszero();
                 let w = ((w as u64) << 32) | (w as u64);
-                for i in 0..$N {
+                for i in 0..Self::N {
                     self.0[i] &= w;
                 }
 
@@ -1001,7 +1012,7 @@ macro_rules! define_fp_core {
                 // value.
                 let r = self.square().equals(&ww[0]);
                 let rw = (r as u64) | ((r as u64) << 32);
-                for i in 0..$N {
+                for i in 0..Self::N {
                     self.0[i] &= rw;
                 }
 
@@ -1063,7 +1074,7 @@ macro_rules! define_fp_core {
                 // value.
                 let r = self.square().square().equals(&ww[0]);
                 let rw = (r as u64) | ((r as u64) << 32);
-                for i in 0..$N {
+                for i in 0..Self::N {
                     self.0[i] &= rw;
                 }
 
@@ -1139,15 +1150,14 @@ macro_rules! define_fp_core {
                 // work directly on the Montgomery representation because R = 2^1184
                 // is a square.
                 let mut a = self;
-                let mut b = Self($MODULUS);
+                let mut b = Self(Self::MODULUS);
                 let mut ls = 0u64;
 
                 // Generic loop; each iteration reduces the sum of the sizes
                 // of a and b by at least 31, and that sum starts at 2*BITLEN
                 // (at most). We need to run it until the sum of the two lengths
                 // is at most 64.
-                const NUM1: usize = (2 * $BITLEN - 34) / 31;
-                for _ in 0..NUM1 {
+                for _ in 0..Self::NUM1 {
                     // Get approximations of a and b over 64 bits:
                     //  - If len(a) <= 64 and len(b) <= 64, then we just
                     //    use their values (low limbs).
@@ -1160,7 +1170,7 @@ macro_rules! define_fp_core {
                     let mut a_lo = 0u64;
                     let mut b_hi = 0u64;
                     let mut b_lo = 0u64;
-                    for j in (0..$N).rev() {
+                    for j in (0..Self::N).rev() {
                         let aw = a.0[j];
                         let bw = b.0[j];
                         a_hi ^= (a_hi ^ aw) & c_hi;
@@ -1264,8 +1274,6 @@ macro_rules! define_fp_core {
                     b = nb;
                 }
 
-                const NUM2: usize = 2 * $BITLEN - 31 * NUM1 - 2;
-
                 // If y is non-zero, then the final GCD is 1, and
                 // len(a) + len(b) <= NUM2 + 2 at this point (initially,
                 // len(a) + len(b) <= 2*BITLEN, and each outer iteration reduces
@@ -1274,7 +1282,7 @@ macro_rules! define_fp_core {
                 // iterations to reach the point where b = 1.
                 let mut xa = a.0[0];
                 let mut xb = b.0[0];
-                for _ in 0..NUM2 {
+                for _ in 0..Self::NUM2 {
                     let a_odd = (xa & 1).wrapping_neg();
                     let (_, cc) = $crate::utils64::subborrow_u64(xa, xb, 0);
                     let swap = a_odd & (cc as u64).wrapping_neg();
@@ -1302,27 +1310,27 @@ macro_rules! define_fp_core {
                 let mut r = self;
                 r.set_montyred();
                 let mut d = [0u8; Self::ENCODED_LENGTH];
-                for i in 0..($N - 1) {
+                for i in 0..(Self::N - 1) {
                     d[(i * 8)..(i * 8 + 8)].copy_from_slice(&r.0[i].to_le_bytes());
                 }
-                d[(($N - 1) * 8)..].copy_from_slice(
-                    &(r.0[$N - 1].to_le_bytes()[..Self::ENCODED_LENGTH - ($N - 1) * 8]),
+                d[((Self::N - 1) * 8)..].copy_from_slice(
+                    &(r.0[Self::N - 1].to_le_bytes()[..Self::ENCODED_LENGTH - (Self::N - 1) * 8]),
                 );
                 d
             }
 
             #[inline]
             fn set_decode_nocheck(&mut self, buf: &[u8]) {
-                for i in 0..($N - 1) {
+                for i in 0..(Self::N - 1) {
                     self.0[i] = u64::from_le_bytes(
                         *<&[u8; 8]>::try_from(&buf[(8 * i)..(8 * i + 8)]).unwrap(),
                     );
                 }
                 let mut w = 0u64;
-                for j in 0..(Self::ENCODED_LENGTH - ($N - 1) * 8) {
-                    w |= (buf[($N - 1) * 8 + j] as u64) << (8 * j);
+                for j in 0..(Self::ENCODED_LENGTH - (Self::N - 1) * 8) {
+                    w |= (buf[(Self::N - 1) * 8 + j] as u64) << (8 * j);
                 }
-                self.0[$N - 1] = w;
+                self.0[Self::N - 1] = w;
             }
 
             /// Decode the provided bytes into a field element. Returned values
@@ -1342,13 +1350,13 @@ macro_rules! define_fp_core {
                 r.set_decode_nocheck(buf);
 
                 // check that the source is canonical; clear if invalid
-                let (_, mut cc) = $crate::utils64::subborrow_u64(r.0[0], $MODULUS[0], 0);
-                for i in 1..$N {
-                    let (_, ee) = $crate::utils64::subborrow_u64(r.0[i], $MODULUS[i], cc);
+                let (_, mut cc) = $crate::utils64::subborrow_u64(r.0[0], Self::MODULUS[0], 0);
+                for i in 1..Self::N {
+                    let (_, ee) = $crate::utils64::subborrow_u64(r.0[i], Self::MODULUS[i], cc);
                     cc = ee;
                 }
                 let m = (cc as u64).wrapping_neg();
-                for i in 0..$N {
+                for i in 0..Self::N {
                     r.0[i] &= m;
                 }
 
@@ -1371,18 +1379,17 @@ macro_rules! define_fp_core {
                 }
 
                 let mut tmp = [0u8; Self::ENCODED_LENGTH];
-                const CLEN: usize = 8 * ($N - 1);
-                let mut nn = n % CLEN;
+                let mut nn = n % Self::CLEN;
                 if nn == 0 {
-                    nn = CLEN;
+                    nn = Self::CLEN;
                 }
                 n -= nn;
                 tmp[..nn].copy_from_slice(&buf[n..]);
                 self.set_decode_nocheck(&tmp);
 
                 while n > 0 {
-                    n -= CLEN;
-                    tmp[..CLEN].copy_from_slice(&buf[n..(n + CLEN)]);
+                    n -= Self::CLEN;
+                    tmp[..Self::CLEN].copy_from_slice(&buf[n..(n + Self::CLEN)]);
                     let mut d = Self::ZERO;
                     d.set_decode_nocheck(&tmp);
                     self.set_mul(&Self::TDEC);
@@ -1406,7 +1413,10 @@ macro_rules! define_fp_core {
 
             /// Set this structure to a random field element (indistinguishable
             /// from uniform generation).
-            pub fn set_rand<T: ::rand_core::CryptoRng + ::rand_core::RngCore>(&mut self, rng: &mut T) {
+            pub fn set_rand<T: ::rand_core::CryptoRng + ::rand_core::RngCore>(
+                &mut self,
+                rng: &mut T,
+            ) {
                 let mut tmp = [0u8; Self::ENCODED_LENGTH + 16];
                 rng.fill_bytes(&mut tmp);
                 self.set_decode_reduce(&tmp);
@@ -1449,7 +1459,7 @@ macro_rules! define_fp_core {
                 // Montgomery multiplcation is interleaved, so we loop through every limb
                 // multiplying by the bottom word of on element through every word of the
                 // other and then perform a single Montgomery reducton
-                for j in 0..$N {
+                for j in 0..Self::N {
                     // For each loop set the extra limb back to zero, for the general case,
                     // I think this value should be updated from the carry of the previous
                     // loop!
@@ -1458,7 +1468,7 @@ macro_rules! define_fp_core {
                     // Compute u = u + a1j * b1
                     let a1j = a1.0[j];
                     (u.0[0], carry) = $crate::utils64::umull_add(a1j, b1.0[0], u.0[0]);
-                    for k in 1..$N {
+                    for k in 1..Self::N {
                         (u.0[k], carry) = $crate::utils64::umull_add2(a1j, b1.0[k], u.0[k], carry);
                     }
                     extra_limb = extra_limb.wrapping_add(carry);
@@ -1466,7 +1476,7 @@ macro_rules! define_fp_core {
                     // Compute u = u + a2j * b2
                     let a2j = a2.0[j];
                     (u.0[0], carry) = $crate::utils64::umull_add(a2j, b2.0[0], u.0[0]);
-                    for k in 1..$N {
+                    for k in 1..Self::N {
                         (u.0[k], carry) = $crate::utils64::umull_add2(a2j, b2.0[k], u.0[k], carry);
                     }
                     extra_limb = extra_limb.wrapping_add(carry);
@@ -1480,24 +1490,27 @@ macro_rules! define_fp_core {
                     // u64 multiplication for each loop, but stops this function from
                     // working more generally.
                     let q = u.0[0].wrapping_mul($P0I);
-                    (_, carry) = $crate::utils64::umull_add(q, $MODULUS[0], u.0[0]);
-                    for k in 1..$N {
-                        (u.0[k - 1], carry) = $crate::utils64::umull_add2(q, $MODULUS[k], u.0[k], carry);
+                    (_, carry) = $crate::utils64::umull_add(q, Self::MODULUS[0], u.0[0]);
+                    for k in 1..Self::N {
+                        (u.0[k - 1], carry) =
+                            $crate::utils64::umull_add2(q, Self::MODULUS[k], u.0[k], carry);
                     }
-                    u.0[$N - 1] = extra_limb.wrapping_add(carry);
+                    u.0[Self::N - 1] = extra_limb.wrapping_add(carry);
                 }
 
                 // The result of the above is a value within [0, 2p)
                 // We subtract the modulus to obtain something in the range [-p, 0) and
                 // conditionally add the modulus back if the previous result was negative
                 borrow = 0;
-                for i in 0..$N {
-                    (u.0[i], borrow) = $crate::utils64::subborrow_u64(u.0[i], $MODULUS[i], borrow);
+                for i in 0..Self::N {
+                    (u.0[i], borrow) =
+                        $crate::utils64::subborrow_u64(u.0[i], Self::MODULUS[i], borrow);
                 }
                 let mask = (borrow as u64).wrapping_neg();
                 borrow = 0;
-                for i in 0..$N {
-                    (u.0[i], borrow) = $crate::utils64::addcarry_u64(u.0[i], mask & $MODULUS[i], borrow);
+                for i in 0..Self::N {
+                    (u.0[i], borrow) =
+                        $crate::utils64::addcarry_u64(u.0[i], mask & Self::MODULUS[i], borrow);
                 }
 
                 u
@@ -1518,14 +1531,15 @@ macro_rules! define_fp_core {
                 // Is this the fastest way to do this or could I interleave it into
                 // the below loop?
                 let mut b2_minus = *b2;
-                for i in 0..$N {
-                    (b2_minus.0[i], borrow) = $crate::utils64::subborrow_u64($MODULUS[i], b2_minus.0[i], borrow);
+                for i in 0..Self::N {
+                    (b2_minus.0[i], borrow) =
+                        $crate::utils64::subborrow_u64(Self::MODULUS[i], b2_minus.0[i], borrow);
                 }
 
                 // Montgomery multiplcation is interleaved, so we loop through every limb
                 // multiplying by the bottom word of on element through every word of the
                 // other and then perform a single Montgomery reducton
-                for j in 0..$N {
+                for j in 0..Self::N {
                     // For each loop set the extra limb back to zero, for the general case,
                     // I think this value should be updated from the carry of the previous
                     // loop!
@@ -1534,7 +1548,7 @@ macro_rules! define_fp_core {
                     // Compute u = u + a1j * b1
                     let a1j = a1.0[j];
                     (u.0[0], carry) = $crate::utils64::umull_add(a1j, b1.0[0], u.0[0]);
-                    for k in 1..$N {
+                    for k in 1..Self::N {
                         (u.0[k], carry) = $crate::utils64::umull_add2(a1j, b1.0[k], u.0[k], carry);
                     }
                     extra_limb = extra_limb.wrapping_add(carry);
@@ -1542,8 +1556,9 @@ macro_rules! define_fp_core {
                     // Compute u = u + a2j * b2_minus = u - a2j * b2
                     let a2j = a2.0[j];
                     (u.0[0], carry) = $crate::utils64::umull_add(a2j, b2_minus.0[0], u.0[0]);
-                    for k in 1..$N {
-                        (u.0[k], carry) = $crate::utils64::umull_add2(a2j, b2_minus.0[k], u.0[k], carry);
+                    for k in 1..Self::N {
+                        (u.0[k], carry) =
+                            $crate::utils64::umull_add2(a2j, b2_minus.0[k], u.0[k], carry);
                     }
                     extra_limb = extra_limb.wrapping_add(carry);
 
@@ -1552,33 +1567,45 @@ macro_rules! define_fp_core {
                     // Then computing
                     // u = (u + q * p) / 2^64
                     let q = u.0[0].wrapping_mul($P0I);
-                    (_, carry) = $crate::utils64::umull_add(q, $MODULUS[0], u.0[0]);
-                    for k in 1..$N {
-                        (u.0[k - 1], carry) = $crate::utils64::umull_add2(q, $MODULUS[k], u.0[k], carry);
+                    (_, carry) = $crate::utils64::umull_add(q, Self::MODULUS[0], u.0[0]);
+                    for k in 1..Self::N {
+                        (u.0[k - 1], carry) =
+                            $crate::utils64::umull_add2(q, Self::MODULUS[k], u.0[k], carry);
                     }
-                    u.0[$N - 1] = extra_limb.wrapping_add(carry);
+                    u.0[Self::N - 1] = extra_limb.wrapping_add(carry);
                 }
 
                 // The result of the above is a value within [0, 2p)
                 // We subtract the modulus to obtain something in the range [-p, 0) and
                 // conditionally add the modulus back if the previous result was negative
                 let mut borrow = 0;
-                for i in 0..$N {
-                    (u.0[i], borrow) = $crate::utils64::subborrow_u64(u.0[i], $MODULUS[i], borrow);
+                for i in 0..Self::N {
+                    (u.0[i], borrow) =
+                        $crate::utils64::subborrow_u64(u.0[i], Self::MODULUS[i], borrow);
                 }
                 let mask = (borrow as u64).wrapping_neg();
                 borrow = 0;
-                for i in 0..$N {
-                    (u.0[i], borrow) = $crate::utils64::addcarry_u64(u.0[i], mask & $MODULUS[i], borrow);
+                for i in 0..Self::N {
+                    (u.0[i], borrow) =
+                        $crate::utils64::addcarry_u64(u.0[i], mask & Self::MODULUS[i], borrow);
                 }
 
                 u
             }
+
+            /*
+             * Support functions which compute constants at compile time to
+             * generate macro constants. WIP is to remove as many user inputs
+             * into the macro (ideally just the Modulus should be needed)
+             */
         }
 
-        // ========================================================================
+        /*
+         * Implementations of all the traits needed to use the simple operators
+         * (+, *, /...) on field element instances, with or without references.
+         */
 
-        impl ::std::fmt::Display for $name {
+        impl ::std::fmt::Display for $typename {
             fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
                 let v_bytes = self.encode();
                 let v_big = ::num_bigint::BigInt::from_bytes_le(::num_bigint::Sign::Plus, &v_bytes);
@@ -1587,256 +1614,256 @@ macro_rules! define_fp_core {
             }
         }
 
-        impl ::core::ops::Add<$name> for $name {
-            type Output = $name;
+        impl ::core::ops::Add<$typename> for $typename {
+            type Output = $typename;
 
             #[inline(always)]
-            fn add(self, other: $name) -> $name {
+            fn add(self, other: $typename) -> $typename {
                 let mut r = self;
                 r.set_add(&other);
                 r
             }
         }
 
-        impl ::core::ops::Add<&$name> for $name {
-            type Output = $name;
+        impl ::core::ops::Add<&$typename> for $typename {
+            type Output = $typename;
 
             #[inline(always)]
-            fn add(self, other: &$name) -> $name {
+            fn add(self, other: &$typename) -> $typename {
                 let mut r = self;
                 r.set_add(other);
                 r
             }
         }
 
-        impl ::core::ops::Add<$name> for &$name {
-            type Output = $name;
+        impl ::core::ops::Add<$typename> for &$typename {
+            type Output = $typename;
 
             #[inline(always)]
-            fn add(self, other: $name) -> $name {
+            fn add(self, other: $typename) -> $typename {
                 let mut r = *self;
                 r.set_add(&other);
                 r
             }
         }
 
-        impl ::core::ops::Add<&$name> for &$name {
-            type Output = $name;
+        impl ::core::ops::Add<&$typename> for &$typename {
+            type Output = $typename;
 
             #[inline(always)]
-            fn add(self, other: &$name) -> $name {
+            fn add(self, other: &$typename) -> $typename {
                 let mut r = *self;
                 r.set_add(other);
                 r
             }
         }
 
-        impl ::core::ops::AddAssign<$name> for $name {
+        impl ::core::ops::AddAssign<$typename> for $typename {
             #[inline(always)]
-            fn add_assign(&mut self, other: $name) {
+            fn add_assign(&mut self, other: $typename) {
                 self.set_add(&other);
             }
         }
 
-        impl ::core::ops::AddAssign<&$name> for $name {
+        impl ::core::ops::AddAssign<&$typename> for $typename {
             #[inline(always)]
-            fn add_assign(&mut self, other: &$name) {
+            fn add_assign(&mut self, other: &$typename) {
                 self.set_add(other);
             }
         }
 
-        impl ::core::ops::Div<$name> for $name {
-            type Output = $name;
+        impl ::core::ops::Div<$typename> for $typename {
+            type Output = $typename;
 
             #[inline(always)]
-            fn div(self, other: $name) -> $name {
+            fn div(self, other: $typename) -> $typename {
                 let mut r = self;
                 r.set_div(&other);
                 r
             }
         }
 
-        impl ::core::ops::Div<&$name> for $name {
-            type Output = $name;
+        impl ::core::ops::Div<&$typename> for $typename {
+            type Output = $typename;
 
             #[inline(always)]
-            fn div(self, other: &$name) -> $name {
+            fn div(self, other: &$typename) -> $typename {
                 let mut r = self;
                 r.set_div(other);
                 r
             }
         }
 
-        impl ::core::ops::Div<$name> for &$name {
-            type Output = $name;
+        impl ::core::ops::Div<$typename> for &$typename {
+            type Output = $typename;
 
             #[inline(always)]
-            fn div(self, other: $name) -> $name {
+            fn div(self, other: $typename) -> $typename {
                 let mut r = *self;
                 r.set_div(&other);
                 r
             }
         }
 
-        impl ::core::ops::Div<&$name> for &$name {
-            type Output = $name;
+        impl ::core::ops::Div<&$typename> for &$typename {
+            type Output = $typename;
 
             #[inline(always)]
-            fn div(self, other: &$name) -> $name {
+            fn div(self, other: &$typename) -> $typename {
                 let mut r = *self;
                 r.set_div(other);
                 r
             }
         }
 
-        impl ::core::ops::DivAssign<$name> for $name {
+        impl ::core::ops::DivAssign<$typename> for $typename {
             #[inline(always)]
-            fn div_assign(&mut self, other: $name) {
+            fn div_assign(&mut self, other: $typename) {
                 self.set_div(&other);
             }
         }
 
-        impl ::core::ops::DivAssign<&$name> for $name {
+        impl ::core::ops::DivAssign<&$typename> for $typename {
             #[inline(always)]
-            fn div_assign(&mut self, other: &$name) {
+            fn div_assign(&mut self, other: &$typename) {
                 self.set_div(other);
             }
         }
 
-        impl ::core::ops::Mul<$name> for $name {
-            type Output = $name;
+        impl ::core::ops::Mul<$typename> for $typename {
+            type Output = $typename;
 
             #[inline(always)]
-            fn mul(self, other: $name) -> $name {
+            fn mul(self, other: $typename) -> $typename {
                 let mut r = self;
                 r.set_mul(&other);
                 r
             }
         }
 
-        impl ::core::ops::Mul<&$name> for $name {
-            type Output = $name;
+        impl ::core::ops::Mul<&$typename> for $typename {
+            type Output = $typename;
 
             #[inline(always)]
-            fn mul(self, other: &$name) -> $name {
+            fn mul(self, other: &$typename) -> $typename {
                 let mut r = self;
                 r.set_mul(other);
                 r
             }
         }
 
-        impl ::core::ops::Mul<$name> for &$name {
-            type Output = $name;
+        impl ::core::ops::Mul<$typename> for &$typename {
+            type Output = $typename;
 
             #[inline(always)]
-            fn mul(self, other: $name) -> $name {
+            fn mul(self, other: $typename) -> $typename {
                 let mut r = *self;
                 r.set_mul(&other);
                 r
             }
         }
 
-        impl ::core::ops::Mul<&$name> for &$name {
-            type Output = $name;
+        impl ::core::ops::Mul<&$typename> for &$typename {
+            type Output = $typename;
 
             #[inline(always)]
-            fn mul(self, other: &$name) -> $name {
+            fn mul(self, other: &$typename) -> $typename {
                 let mut r = *self;
                 r.set_mul(other);
                 r
             }
         }
 
-        impl ::core::ops::MulAssign<$name> for $name {
+        impl ::core::ops::MulAssign<$typename> for $typename {
             #[inline(always)]
-            fn mul_assign(&mut self, other: $name) {
+            fn mul_assign(&mut self, other: $typename) {
                 self.set_mul(&other);
             }
         }
 
-        impl ::core::ops::MulAssign<&$name> for $name {
+        impl ::core::ops::MulAssign<&$typename> for $typename {
             #[inline(always)]
-            fn mul_assign(&mut self, other: &$name) {
+            fn mul_assign(&mut self, other: &$typename) {
                 self.set_mul(other);
             }
         }
 
-        impl ::core::ops::Neg for $name {
-            type Output = $name;
+        impl ::core::ops::Neg for $typename {
+            type Output = $typename;
 
             #[inline(always)]
-            fn neg(self) -> $name {
+            fn neg(self) -> $typename {
                 let mut r = self;
                 r.set_neg();
                 r
             }
         }
 
-        impl ::core::ops::Neg for &$name {
-            type Output = $name;
+        impl ::core::ops::Neg for &$typename {
+            type Output = $typename;
 
             #[inline(always)]
-            fn neg(self) -> $name {
+            fn neg(self) -> $typename {
                 let mut r = *self;
                 r.set_neg();
                 r
             }
         }
 
-        impl ::core::ops::Sub<$name> for $name {
-            type Output = $name;
+        impl ::core::ops::Sub<$typename> for $typename {
+            type Output = $typename;
 
             #[inline(always)]
-            fn sub(self, other: $name) -> $name {
+            fn sub(self, other: $typename) -> $typename {
                 let mut r = self;
                 r.set_sub(&other);
                 r
             }
         }
 
-        impl ::core::ops::Sub<&$name> for $name {
-            type Output = $name;
+        impl ::core::ops::Sub<&$typename> for $typename {
+            type Output = $typename;
 
             #[inline(always)]
-            fn sub(self, other: &$name) -> $name {
+            fn sub(self, other: &$typename) -> $typename {
                 let mut r = self;
                 r.set_sub(other);
                 r
             }
         }
 
-        impl ::core::ops::Sub<$name> for &$name {
-            type Output = $name;
+        impl ::core::ops::Sub<$typename> for &$typename {
+            type Output = $typename;
 
             #[inline(always)]
-            fn sub(self, other: $name) -> $name {
+            fn sub(self, other: $typename) -> $typename {
                 let mut r = *self;
                 r.set_sub(&other);
                 r
             }
         }
 
-        impl ::core::ops::Sub<&$name> for &$name {
-            type Output = $name;
+        impl ::core::ops::Sub<&$typename> for &$typename {
+            type Output = $typename;
 
             #[inline(always)]
-            fn sub(self, other: &$name) -> $name {
+            fn sub(self, other: &$typename) -> $typename {
                 let mut r = *self;
                 r.set_sub(other);
                 r
             }
         }
 
-        impl ::core::ops::SubAssign<$name> for $name {
+        impl ::core::ops::SubAssign<$typename> for $typename {
             #[inline(always)]
-            fn sub_assign(&mut self, other: $name) {
+            fn sub_assign(&mut self, other: $typename) {
                 self.set_sub(&other);
             }
         }
 
-        impl ::core::ops::SubAssign<&$name> for $name {
+        impl ::core::ops::SubAssign<&$typename> for $typename {
             #[inline(always)]
-            fn sub_assign(&mut self, other: &$name) {
+            fn sub_assign(&mut self, other: &$typename) {
                 self.set_sub(other);
             }
         }

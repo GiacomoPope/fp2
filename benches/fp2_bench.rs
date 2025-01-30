@@ -108,14 +108,12 @@ mod bench_fp_251_ext {
     // Macro input generated with scripts/gen_fp.sage
     // p = 5*2^248 - 1
     fp2_rs::define_fp_core!(
-        type_name = Fp251,
-        words = 4_usize,
-        bit_len = 251_usize,
+        typename = Fp251,
         modulus = [
-            0xFFFFFFFFFFFFFFFF,
-            0xFFFFFFFFFFFFFFFF,
-            0xFFFFFFFFFFFFFFFF,
-            0x04FFFFFFFFFFFFFF
+            0xFFFFFFFFFFFFFFFF_u64,
+            0xFFFFFFFFFFFFFFFF_u64,
+            0xFFFFFFFFFFFFFFFF_u64,
+            0x04FFFFFFFFFFFFFF_u64
         ],
         half_modulus = [
             0x0000000000000000,
@@ -185,7 +183,7 @@ mod bench_fp_251_ext {
     // Contents are opaque, all functions are constant-time.
     // Macro input generated with scripts/gen_fp.sage
     fp2_rs::define_fp2_core!(
-        type_name = Fp251Ext,
+        typename = Fp251Ext,
         base_field = Fp251,
         nqr_re = [
             0x0000000000000100,

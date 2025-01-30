@@ -2,8 +2,6 @@
 This file, given a prime p = 3 mod 4 computes all the following constants needed
 for the macros fp_gen.rs and fp2_gen.rs
 
-//      N (usize)                 the number of words needed
-//      BITLEN (usize)            modulus length in bits
 //      MODULUS ([u64; N])        modulus p (little-endian)
 //      HALF_MODULUS ([u64; N])   (p + 1)/2 (little-endian)
 //      R_VAL ([u64; N])          2^(64*N) mod p
@@ -133,9 +131,7 @@ str = f"""
 // Contents are opaque, all functions are constant-time.
 // Macro input generated with scripts/gen_fp.sage
 fp2_rs::define_fp_core!(
-    type_name = Fp{BITLEN},
-    words = {N}_usize,
-    bit_len = {BITLEN}_usize,
+    typename = Fp{BITLEN},
     modulus = [{MODULUS}],
     half_modulus = [{HALF_MODULUS}],
     mont_r = [{R_VAL}],
@@ -160,7 +156,7 @@ fp2_rs::define_fp_core!(
 // Contents are opaque, all functions are constant-time.
 // Macro input generated with scripts/gen_fp.sage
 fp2_rs::define_fp2_core!(
-    type_name = Fp{BITLEN}Ext,
+    typename = Fp{BITLEN}Ext,
     base_field = Fp{BITLEN},
     nqr_re = [{NQR_RE_VAL}]
 );
