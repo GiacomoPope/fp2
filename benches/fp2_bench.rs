@@ -110,10 +110,10 @@ mod bench_fp_251_ext {
     fp2_rs::define_fp_core!(
         typename = Fp251,
         modulus = [
-            0xFFFFFFFFFFFFFFFF_u64,
-            0xFFFFFFFFFFFFFFFF_u64,
-            0xFFFFFFFFFFFFFFFF_u64,
-            0x04FFFFFFFFFFFFFF_u64
+            0xFFFFFFFFFFFFFFFF,
+            0xFFFFFFFFFFFFFFFF,
+            0xFFFFFFFFFFFFFFFF,
+            0x04FFFFFFFFFFFFFF
         ],
         half_modulus = [
             0x0000000000000000,
