@@ -17,13 +17,11 @@
 
 // Macro expectations:
 // A finite field Fp = GF(p) with p = 3 mod 4
-// NQR_RE a Fp type such that (i + NQR_RE) is a NQR
 #[macro_export]
 macro_rules! define_fp2_core {
     (
-        type_name = $name:ident,
+        typename = $name:ident,
         base_field = $Fp:ty,
-        nqr_re = $NQR_RE:expr
     ) => {
         /// GF(p^2) implementation.
         #[derive(Clone, Copy, Debug)]
@@ -68,12 +66,6 @@ macro_rules! define_fp2_core {
 
             pub const ENCODED_LENGTH: usize = 2 * <$Fp>::ENCODED_LENGTH;
             pub const CHAR_BIT_LENGTH: usize = <$Fp>::BIT_LENGTH;
-
-            /// Non-quadratic residue.
-            pub const NQR: Self = Self {
-                x0: <$Fp>::new($NQR_RE),
-                x1: <$Fp>::ONE,
-            };
 
             pub const fn new(re: &$Fp, im: &$Fp) -> Self {
                 Self { x0: *re, x1: *im }
@@ -638,38 +630,6 @@ macro_rules! define_fp2_core {
             pub fn rand<T: ::rand_core::CryptoRng + ::rand_core::RngCore>(rng: &mut T) -> Self {
                 let mut x = Self::ZERO;
                 x.set_rand(rng);
-                x
-            }
-
-            /// Set this structure to a random non-square field element
-            /// (indistinguishable from uniform generation).
-            pub fn set_rand_nonsquare<T: ::rand_core::CryptoRng + ::rand_core::RngCore>(
-                &mut self,
-                rng: &mut T,
-            ) {
-                // We get a random non-square by getting a random non-zero
-                // value, squaring it, and multiplying by a known non-square.
-                // The loop handles the case of getting zero randomly, which
-                // is very unlikely in practice.
-                loop {
-                    self.set_rand(rng);
-                    if self.iszero() != 0 {
-                        continue;
-                    }
-                    break;
-                }
-                self.set_square();
-                self.set_mul(&Self::NQR);
-            }
-
-            /// Return a new random non-square field element
-            /// (indistinguishable from uniform generation).
-            pub fn rand_nonsquare<T: ::rand_core::CryptoRng + ::rand_core::RngCore>(
-                self,
-                rng: &mut T,
-            ) -> Self {
-                let mut x = Self::ZERO;
-                x.set_rand_nonsquare(rng);
                 x
             }
 

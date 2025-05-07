@@ -19,7 +19,7 @@ Fields can be defined using macros as follows:
 // Contents are opaque, all functions are constant-time.
 // Macro input generated with scripts/gen_fp.sage
 fp2_rs::define_fp_core!(
-    type_name = Fp251,
+    typename = Fp251,
     words = 4_usize,
     bit_len = 251_usize,
     modulus = [0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0x04FFFFFFFFFFFFFF],
@@ -46,7 +46,7 @@ fp2_rs::define_fp_core!(
 // Contents are opaque, all functions are constant-time.
 // Macro input generated with scripts/gen_fp.sage
 fp2_rs::define_fp2_core!(
-    type_name = Fp251Ext,
+    typename = Fp251Ext,
     base_field = Fp251,
     nqr_re = [0x0000000000000100, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000]
 );

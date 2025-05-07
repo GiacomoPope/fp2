@@ -11,6 +11,7 @@ macro_rules! define_fp_tests {
                 zpww[2 * i] = <$Fp>::MODULUS[i] as u32;
                 zpww[2 * i + 1] = (<$Fp>::MODULUS[i] >> 32) as u32;
             }
+
             let zp = ::num_bigint::BigInt::from_slice(::num_bigint::Sign::Plus, &zpww);
             let zpz = &zp << 64;
 
@@ -208,7 +209,7 @@ macro_rules! define_fp_tests {
 #[cfg_attr(feature = "test_macros", macro_export)]
 #[cfg_attr(not(feature = "test_macros"), allow(unused_macros))]
 macro_rules! define_fp2_tests {
-    ($Fp:ty, $Fp2:ty) => {
+    ($Fp:ty, $Fp2:ty, $nqr:literal) => {
         use ::num_bigint::ToBigInt as _;
         use ::sha2::Digest as _;
 
@@ -347,9 +348,15 @@ macro_rules! define_fp2_tests {
                 if zc0.sign() == ::num_bigint::Sign::NoSign {
                     assert!(zc1.bit(0) == false);
                 }
+
+                // Compute a nqr from a known real part
+                // nqr = nqr_re + i
+                let mut nqr: $Fp2 = <$Fp2>::ZETA;
+                nqr.x0 = <$Fp>::from_u64($nqr);
+
                 if a.iszero() == 0 {
                     assert!(e.legendre() == 1);
-                    let e = a * a * <$Fp2>::NQR;
+                    let e = a * a * nqr;
                     assert!(e.legendre() == -1);
                     let (c, r) = e.sqrt();
                     assert!(r == 0);
