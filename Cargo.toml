@@ -1,6 +1,6 @@
 [package]
 keywords = ["finite", "field", "isogeny", "isogenies"]
-name = "fp2_rs"
+name = "fp2"
 version = "0.0.1"
 edition = "2024"
 license = "MIT OR Apache-2.0"

@@ -6,7 +6,7 @@ mod tests {
         // Contents are opaque, all functions are constant-time.
         // Macro input generated with scripts/gen_fp.sage
         // p = 2^74 * 3^41 - 1
-        fp2_rs::define_fp_core!(
+        fp2::define_fp_core!(
             typename = Fp139,
             modulus = [
                 0xFFFFFFFFFFFFFFFF_u64,
@@ -18,10 +18,10 @@ mod tests {
         // Fp139Ext: a finite field element GF(p^2) with modulus x^2 + 1.
         // Contents are opaque, all functions are constant-time.
         // Macro input generated with scripts/gen_fp.sage
-        fp2_rs::define_fp2_core!(typename = Fp139Ext, base_field = Fp139,);
+        fp2::define_fp2_core!(typename = Fp139Ext, base_field = Fp139,);
 
-        fp2_rs::define_fp_tests!(Fp139);
-        fp2_rs::define_fp2_tests!(Fp139, Fp139Ext, 10);
+        fp2::define_fp_tests!(Fp139);
+        fp2::define_fp2_tests!(Fp139, Fp139Ext, 10);
     }
 
     mod fp251_tests {
@@ -29,7 +29,7 @@ mod tests {
         // Contents are opaque, all functions are constant-time.
         // Macro input generated with scripts/gen_fp.sage
         // p = 5*2^248 - 1
-        fp2_rs::define_fp_core!(
+        fp2::define_fp_core!(
             typename = Fp251,
             modulus = [
                 0xFFFFFFFFFFFFFFFFu64,
@@ -42,10 +42,10 @@ mod tests {
         // Fp251Ext: a finite field element GF(p^2) with modulus x^2 + 1.
         // Contents are opaque, all functions are constant-time.
         // Macro input generated with scripts/gen_fp.sage
-        fp2_rs::define_fp2_core!(typename = Fp251Ext, base_field = Fp251,);
+        fp2::define_fp2_core!(typename = Fp251Ext, base_field = Fp251,);
 
-        fp2_rs::define_fp_tests!(Fp251);
-        fp2_rs::define_fp2_tests!(Fp251, Fp251Ext, 5);
+        fp2::define_fp_tests!(Fp251);
+        fp2::define_fp2_tests!(Fp251, Fp251Ext, 5);
     }
 
     mod fp383_tests {
@@ -53,7 +53,7 @@ mod tests {
         // Contents are opaque, all functions are constant-time.
         // Macro input generated with scripts/gen_fp.sage
         // p = 65 * 2**376 - 1
-        fp2_rs::define_fp_core!(
+        fp2::define_fp_core!(
             typename = Fp383,
             modulus = [
                 0xFFFFFFFFFFFFFFFFu64,
@@ -68,11 +68,11 @@ mod tests {
         // Fp383Ext: a finite field element GF(p^2) with modulus x^2 + 1.
         // Contents are opaque, all functions are constant-time.
         // Macro input generated with scripts/gen_fp.sage
-        fp2_rs::define_fp2_core!(typename = Fp383Ext, base_field = Fp383,);
+        fp2::define_fp2_core!(typename = Fp383Ext, base_field = Fp383,);
 
         // For define_fp2_tests we must include a u64 nqr_re such that
         // nqr_re + i is a non-quadratic residue in Fp2
-        fp2_rs::define_fp_tests!(Fp383);
-        fp2_rs::define_fp2_tests!(Fp383, Fp383Ext, 6);
+        fp2::define_fp_tests!(Fp383);
+        fp2::define_fp2_tests!(Fp383, Fp383Ext, 6);
     }
 }
