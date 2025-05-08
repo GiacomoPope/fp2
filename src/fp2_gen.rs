@@ -20,17 +20,17 @@
 #[macro_export]
 macro_rules! define_fp2_core {
     (
-        typename = $name:ident,
+        typename = $typename:ident,
         base_field = $Fp:ty,
     ) => {
         /// GF(p^2) implementation.
         #[derive(Clone, Copy, Debug)]
-        pub struct $name {
+        pub struct $typename {
             x0: $Fp,
             x1: $Fp,
         }
 
-        impl $name {
+        impl $typename {
             pub const ZERO: Self = Self {
                 x0: <$Fp>::ZERO,
                 x1: <$Fp>::ZERO,
@@ -763,7 +763,7 @@ macro_rules! define_fp2_core {
 
         // ========================================================================
 
-        impl ::std::fmt::Display for $name {
+        impl ::std::fmt::Display for $typename {
             fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
                 let r = self.encode();
 
@@ -779,258 +779,260 @@ macro_rules! define_fp2_core {
             }
         }
 
-        impl ::core::ops::Add<$name> for $name {
-            type Output = $name;
+        impl ::core::ops::Add<$typename> for $typename {
+            type Output = $typename;
 
             #[inline(always)]
-            fn add(self, other: $name) -> $name {
+            fn add(self, other: $typename) -> $typename {
                 let mut r = self;
                 r.set_add(&other);
                 r
             }
         }
 
-        impl ::core::ops::Add<&$name> for $name {
-            type Output = $name;
+        impl ::core::ops::Add<&$typename> for $typename {
+            type Output = $typename;
 
             #[inline(always)]
-            fn add(self, other: &$name) -> $name {
+            fn add(self, other: &$typename) -> $typename {
                 let mut r = self;
                 r.set_add(other);
                 r
             }
         }
 
-        impl ::core::ops::Add<$name> for &$name {
-            type Output = $name;
+        impl ::core::ops::Add<$typename> for &$typename {
+            type Output = $typename;
 
             #[inline(always)]
-            fn add(self, other: $name) -> $name {
+            fn add(self, other: $typename) -> $typename {
                 let mut r = *self;
                 r.set_add(&other);
                 r
             }
         }
 
-        impl ::core::ops::Add<&$name> for &$name {
-            type Output = $name;
+        impl ::core::ops::Add<&$typename> for &$typename {
+            type Output = $typename;
 
             #[inline(always)]
-            fn add(self, other: &$name) -> $name {
+            fn add(self, other: &$typename) -> $typename {
                 let mut r = *self;
                 r.set_add(other);
                 r
             }
         }
 
-        impl ::core::ops::AddAssign<$name> for $name {
+        impl ::core::ops::AddAssign<$typename> for $typename {
             #[inline(always)]
-            fn add_assign(&mut self, other: $name) {
+            fn add_assign(&mut self, other: $typename) {
                 self.set_add(&other);
             }
         }
 
-        impl ::core::ops::AddAssign<&$name> for $name {
+        impl ::core::ops::AddAssign<&$typename> for $typename {
             #[inline(always)]
-            fn add_assign(&mut self, other: &$name) {
+            fn add_assign(&mut self, other: &$typename) {
                 self.set_add(other);
             }
         }
 
-        impl ::core::ops::Div<$name> for $name {
-            type Output = $name;
+        impl ::core::ops::Div<$typename> for $typename {
+            type Output = $typename;
 
             #[inline(always)]
-            fn div(self, other: $name) -> $name {
+            fn div(self, other: $typename) -> $typename {
                 let mut r = self;
                 r.set_div(&other);
                 r
             }
         }
 
-        impl ::core::ops::Div<&$name> for $name {
-            type Output = $name;
+        impl ::core::ops::Div<&$typename> for $typename {
+            type Output = $typename;
 
             #[inline(always)]
-            fn div(self, other: &$name) -> $name {
+            fn div(self, other: &$typename) -> $typename {
                 let mut r = self;
                 r.set_div(other);
                 r
             }
         }
 
-        impl ::core::ops::Div<$name> for &$name {
-            type Output = $name;
+        impl ::core::ops::Div<$typename> for &$typename {
+            type Output = $typename;
 
             #[inline(always)]
-            fn div(self, other: $name) -> $name {
+            fn div(self, other: $typename) -> $typename {
                 let mut r = *self;
                 r.set_div(&other);
                 r
             }
         }
 
-        impl ::core::ops::Div<&$name> for &$name {
-            type Output = $name;
+        impl ::core::ops::Div<&$typename> for &$typename {
+            type Output = $typename;
 
             #[inline(always)]
-            fn div(self, other: &$name) -> $name {
+            fn div(self, other: &$typename) -> $typename {
                 let mut r = *self;
                 r.set_div(other);
                 r
             }
         }
 
-        impl ::core::ops::DivAssign<$name> for $name {
+        impl ::core::ops::DivAssign<$typename> for $typename {
             #[inline(always)]
-            fn div_assign(&mut self, other: $name) {
+            fn div_assign(&mut self, other: $typename) {
                 self.set_div(&other);
             }
         }
 
-        impl ::core::ops::DivAssign<&$name> for $name {
+        impl ::core::ops::DivAssign<&$typename> for $typename {
             #[inline(always)]
-            fn div_assign(&mut self, other: &$name) {
+            fn div_assign(&mut self, other: &$typename) {
                 self.set_div(other);
             }
         }
 
-        impl ::core::ops::Mul<$name> for $name {
-            type Output = $name;
+        impl ::core::ops::Mul<$typename> for $typename {
+            type Output = $typename;
 
             #[inline(always)]
-            fn mul(self, other: $name) -> $name {
+            fn mul(self, other: $typename) -> $typename {
                 let mut r = self;
                 r.set_mul(&other);
                 r
             }
         }
 
-        impl ::core::ops::Mul<&$name> for $name {
-            type Output = $name;
+        impl ::core::ops::Mul<&$typename> for $typename {
+            type Output = $typename;
 
             #[inline(always)]
-            fn mul(self, other: &$name) -> $name {
+            fn mul(self, other: &$typename) -> $typename {
                 let mut r = self;
                 r.set_mul(other);
                 r
             }
         }
 
-        impl ::core::ops::Mul<$name> for &$name {
-            type Output = $name;
+        impl ::core::ops::Mul<$typename> for &$typename {
+            type Output = $typename;
 
             #[inline(always)]
-            fn mul(self, other: $name) -> $name {
+            fn mul(self, other: $typename) -> $typename {
                 let mut r = *self;
                 r.set_mul(&other);
                 r
             }
         }
 
-        impl ::core::ops::Mul<&$name> for &$name {
-            type Output = $name;
+        impl ::core::ops::Mul<&$typename> for &$typename {
+            type Output = $typename;
 
             #[inline(always)]
-            fn mul(self, other: &$name) -> $name {
+            fn mul(self, other: &$typename) -> $typename {
                 let mut r = *self;
                 r.set_mul(other);
                 r
             }
         }
 
-        impl ::core::ops::MulAssign<$name> for $name {
+        impl ::core::ops::MulAssign<$typename> for $typename {
             #[inline(always)]
-            fn mul_assign(&mut self, other: $name) {
+            fn mul_assign(&mut self, other: $typename) {
                 self.set_mul(&other);
             }
         }
 
-        impl ::core::ops::MulAssign<&$name> for $name {
+        impl ::core::ops::MulAssign<&$typename> for $typename {
             #[inline(always)]
-            fn mul_assign(&mut self, other: &$name) {
+            fn mul_assign(&mut self, other: &$typename) {
                 self.set_mul(other);
             }
         }
 
-        impl ::core::ops::Neg for $name {
-            type Output = $name;
+        impl ::core::ops::Neg for $typename {
+            type Output = $typename;
 
             #[inline(always)]
-            fn neg(self) -> $name {
+            fn neg(self) -> $typename {
                 let mut r = self;
                 r.set_neg();
                 r
             }
         }
 
-        impl ::core::ops::Neg for &$name {
-            type Output = $name;
+        impl ::core::ops::Neg for &$typename {
+            type Output = $typename;
 
             #[inline(always)]
-            fn neg(self) -> $name {
+            fn neg(self) -> $typename {
                 let mut r = *self;
                 r.set_neg();
                 r
             }
         }
 
-        impl ::core::ops::Sub<$name> for $name {
-            type Output = $name;
+        impl ::core::ops::Sub<$typename> for $typename {
+            type Output = $typename;
 
             #[inline(always)]
-            fn sub(self, other: $name) -> $name {
+            fn sub(self, other: $typename) -> $typename {
                 let mut r = self;
                 r.set_sub(&other);
                 r
             }
         }
 
-        impl ::core::ops::Sub<&$name> for $name {
-            type Output = $name;
+        impl ::core::ops::Sub<&$typename> for $typename {
+            type Output = $typename;
 
             #[inline(always)]
-            fn sub(self, other: &$name) -> $name {
+            fn sub(self, other: &$typename) -> $typename {
                 let mut r = self;
                 r.set_sub(other);
                 r
             }
         }
 
-        impl ::core::ops::Sub<$name> for &$name {
-            type Output = $name;
+        impl ::core::ops::Sub<$typename> for &$typename {
+            type Output = $typename;
 
             #[inline(always)]
-            fn sub(self, other: $name) -> $name {
+            fn sub(self, other: $typename) -> $typename {
                 let mut r = *self;
                 r.set_sub(&other);
                 r
             }
         }
 
-        impl ::core::ops::Sub<&$name> for &$name {
-            type Output = $name;
+        impl ::core::ops::Sub<&$typename> for &$typename {
+            type Output = $typename;
 
             #[inline(always)]
-            fn sub(self, other: &$name) -> $name {
+            fn sub(self, other: &$typename) -> $typename {
                 let mut r = *self;
                 r.set_sub(other);
                 r
             }
         }
 
-        impl ::core::ops::SubAssign<$name> for $name {
+        impl ::core::ops::SubAssign<$typename> for $typename {
             #[inline(always)]
-            fn sub_assign(&mut self, other: $name) {
+            fn sub_assign(&mut self, other: $typename) {
                 self.set_sub(&other);
             }
         }
 
-        impl ::core::ops::SubAssign<&$name> for $name {
+        impl ::core::ops::SubAssign<&$typename> for $typename {
             #[inline(always)]
-            fn sub_assign(&mut self, other: &$name) {
+            fn sub_assign(&mut self, other: &$typename) {
                 self.set_sub(other);
             }
         }
+
+        // impl $crate::fq::Fq for $typename {}
     };
 } // End of macro: define_fp2_core

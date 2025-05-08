@@ -1,7 +1,8 @@
-#![allow(non_snake_case)]
-#![allow(non_upper_case_globals)]
+#![allow(incomplete_features)]
+#![feature(generic_const_exprs)]
 
 pub mod fp2_gen;
 pub mod fp_gen;
+pub mod fq;
 pub mod test_macros;
 pub mod utils64;
