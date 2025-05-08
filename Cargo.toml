@@ -1,9 +1,9 @@
 [package]
+keywords = ["finite", "field", "isogeny", "isogenies"]
 name = "fp2_rs"
 version = "0.0.1"
 edition = "2024"
 license = "MIT OR Apache-2.0"
-keywords = ["finite field", "isogeny", "isogenies"]
 categories = ["cryptography"]
 authors = ["Giacomo Pope <giacomopope@gmail.com>"]
 description = "An efficient, flexible and constant time Rust implementation of the extension field Fp^2 with modulus x^2 + 1"
