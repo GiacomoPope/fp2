@@ -1,3 +1,5 @@
+//! Utility functions for performing arithmetic with `u64` words
+
 // Add with carry; carry is 0 or 1.
 // (x, y, c_in) -> x + y + c_in mod 2^64, c_out
 

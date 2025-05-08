@@ -1,3 +1,9 @@
+//! Macros to generate deterministically random test vectors for finite fields
+
+/// A macro to generate test vectors for a given finite field Fp.
+///
+/// Macro expectations:
+/// - $Fp: a finite field type of degree 1
 #[cfg_attr(feature = "test_macros", macro_export)]
 #[cfg_attr(not(feature = "test_macros"), allow(unused_macros))]
 macro_rules! define_fp_tests {
@@ -115,8 +121,8 @@ macro_rules! define_fp_tests {
             assert!(zc == zd);
 
             let c = a / b;
-            if b.iszero() != 0 {
-                assert!(c.iszero() != 0);
+            if b.is_zero() != 0 {
+                assert!(c.is_zero() != 0);
             } else {
                 let c = c * b;
                 let vc = c.encode();
@@ -126,7 +132,7 @@ macro_rules! define_fp_tests {
             }
 
             let c = a.square();
-            if c.iszero() != 0 {
+            if c.is_zero() != 0 {
                 assert!(c.legendre() == 0);
             } else {
                 assert!(c.legendre() == 1);
@@ -157,9 +163,9 @@ macro_rules! define_fp_tests {
                 let zc = (&zc * &zc) % &zp;
                 let zd = (&za * &za) % &zp;
                 assert!(zc == zd);
-                if a.iszero() == 0 {
+                if a.is_zero() == 0 {
                     let (c, r) = (-(a * a)).sqrt();
-                    assert!(c.iszero() == 0xFFFFFFFF);
+                    assert!(c.is_zero() == 0xFFFFFFFF);
                     assert!(r == 0x00000000);
                 }
 
@@ -171,9 +177,9 @@ macro_rules! define_fp_tests {
                 let zc = (&zc * &zc * &zc * &zc) % &zp;
                 let zd = (&za * &za * &za * &za) % &zp;
                 assert!(zc == zd);
-                if a.iszero() == 0 {
+                if a.is_zero() == 0 {
                     let (c, r) = (-(a * a * a * a)).sqrt();
-                    assert!(c.iszero() == 0xFFFFFFFF);
+                    assert!(c.is_zero() == 0xFFFFFFFF);
                     assert!(r == 0x00000000);
                 }
             }
@@ -205,7 +211,12 @@ macro_rules! define_fp_tests {
     };
 } // End of macro: define_fp_tests
 
-// Macro expectations:
+/// A macro to generate test vectors for a given finite field Fp^2.
+///
+/// Macro expectations:
+/// - $Fp: a finite field type of degree 1
+/// - $Fp2: a degree two extension Fp^2 of the finite field Fp
+/// - nqr: a u64 such that `nqr + i` is a non-quadratic residue in Fp^2
 #[cfg_attr(feature = "test_macros", macro_export)]
 #[cfg_attr(not(feature = "test_macros"), allow(unused_macros))]
 macro_rules! define_fp2_tests {
@@ -306,8 +317,8 @@ macro_rules! define_fp2_tests {
             assert!(zc0 == zd0 && zc1 == zd1);
 
             let c = a / b;
-            if b.iszero() != 0 {
-                assert!(c.iszero() == 0xFFFFFFFF);
+            if b.is_zero() != 0 {
+                assert!(c.is_zero() == 0xFFFFFFFF);
             } else {
                 let c = c * b;
                 let vc = c.encode();
@@ -323,8 +334,8 @@ macro_rules! define_fp2_tests {
             }
 
             let c = b.invert();
-            if b.iszero() != 0 {
-                assert!(c.iszero() == 0xFFFFFFFF);
+            if b.is_zero() != 0 {
+                assert!(c.is_zero() == 0xFFFFFFFF);
             } else {
                 let c = c * b;
                 assert!(c.equals(&<$Fp2>::ONE) == 0xFFFFFFFF);
@@ -354,20 +365,20 @@ macro_rules! define_fp2_tests {
                 let mut nqr: $Fp2 = <$Fp2>::ZETA;
                 nqr.x0 = <$Fp>::from_u64($nqr);
 
-                if a.iszero() == 0 {
+                if a.is_zero() == 0 {
                     assert!(e.legendre() == 1);
                     let e = a * a * nqr;
                     assert!(e.legendre() == -1);
                     let (c, r) = e.sqrt();
                     assert!(r == 0);
-                    assert!(c.iszero() == 0xFFFFFFFF);
+                    assert!(c.is_zero() == 0xFFFFFFFF);
                     let (_, r) = e.fourth_root();
                     assert!(r == 0);
                 } else {
                     assert!(e.legendre() == 0);
                 }
 
-                if a0.iszero() == 0 {
+                if a0.is_zero() == 0 {
                     let f = <$Fp2>::new(&a0, &<$Fp>::ZERO);
                     let (c, r) = f.sqrt();
                     assert!(r == 0xFFFFFFFF);

@@ -1,22 +1,24 @@
-#![allow(non_snake_case)]
+//! A macro to define efficient and constant-time arithmetic for the finite field Fp^2
+//! with modulus x^2 + 1
+//!
+//! # Authorship and History
+//!
+//! The majority of this code has been adapted from code written by Thomas Pornin
+//! from collaboration in previous projects and several methods which appear in other
+//! macros in the cryptographic research library crrl <https://github.com/pornin/crrl>
+//!
+//! This code has also been used in a handful of isogeny-based cryptography research
+//! projects before being rewritten for this crate, including:
+//! - <https://github.com/ThetaIsogenies/two-isogenies>
+//! - <https://github.com/GiacomoPope/cubical-pairings>
+//! - <https://github.com/GiacomoPope/ThetaCGL>
 
-// NOTE:
-// The majority of this code was written by Thomas Pornin, which is part of a
-// larger work in progress implementing another project which is still ongoing.
-// It is similar in form to the macros in the cryptographic library for rust:
-// crrl. https://github.com/pornin/crrl
-// This code was also used in the (2,2)-isogeny implementation
-// https://github.com/ThetaIsogenies/two-isogenies
-
-// A macro to define the finite field Fp^2 with modulus x^2 + 1 = 0 (uses that p
-// = 3 mod 4) given a finite field of type Fp. All functions are designed to run
-// in constant time. To construct the finite field, see the examples in
-// fields.rs which include three distinct cases. To generate your own constants
-// for the macro, the sage file `gen_fp.sage` will compute everything needed
-// given a prime modulus.
-
-// Macro expectations:
-// A finite field Fp = GF(p) with p = 3 mod 4
+/// A macro to define the degree two extension of the finite field Fp, with
+/// modulus x^2 + 1. All functions are designed to run in constant time.
+///
+/// Macro expectations:
+/// - A typename for the finite field generated.
+/// - A finite field type Fp with p = 3 mod 4, for example one generated with the macro `define_fp_core`.
 #[macro_export]
 macro_rules! define_fp2_core {
     (
@@ -72,8 +74,8 @@ macro_rules! define_fp2_core {
             }
 
             #[inline]
-            fn iszero(self) -> u32 {
-                self.x0.iszero() & self.x1.iszero()
+            fn is_zero(self) -> u32 {
+                self.x0.is_zero() & self.x1.is_zero()
             }
 
             #[inline]
@@ -386,7 +388,7 @@ macro_rules! define_fp2_core {
                 // y0sq <- (x0 + sqrt(delta)) / 2
                 let mut y0sq = (self.x0 + sqrt_delta).half();
                 // If x1 = 0, then replace y0sq with x0
-                let x1z = self.x1.iszero();
+                let x1z = self.x1.is_zero();
                 y0sq.set_cond(&self.x0, x1z);
                 // Get the Legendre symbol and set nqr to 0xFFFFFFFF when y0sq
                 // is not a square
@@ -412,7 +414,7 @@ macro_rules! define_fp2_core {
                 // Sign mangement: negate the result if needed.
                 let x0odd = ((self.x0.encode()[0] as u32) & 1).wrapping_neg();
                 let x1odd = ((self.x1.encode()[0] as u32) & 1).wrapping_neg();
-                let x0z = self.x0.iszero();
+                let x0z = self.x0.is_zero();
                 self.set_condneg(x0odd | (x0z & x1odd));
                 r
             }
@@ -506,7 +508,7 @@ macro_rules! define_fp2_core {
                 // When y0^2 is zero, the correct value
                 // is insead n, so we can do a conditional
                 // swap
-                y02.set_cond(&n, y02.iszero());
+                y02.set_cond(&n, y02.is_zero());
 
                 // Now we can take the sqrt no problem, for all
                 // cases!
@@ -529,7 +531,7 @@ macro_rules! define_fp2_core {
                 // F(y0, y0) so we conditionally set y1 = y0
                 // Rather than check whether x0 is a square, we can instead
                 // check whether the discrim. is zero in this case
-                y1.set_cond(&y0, self.x1.iszero() & disc.iszero());
+                y1.set_cond(&y0, self.x1.is_zero() & disc.is_zero());
 
                 // As long has nothing bad has happened, we can
                 // now return the fourth root. If any of the r are
@@ -541,7 +543,7 @@ macro_rules! define_fp2_core {
                 // Sign mangement: negate the result if needed.
                 let x0odd = ((self.x0.encode()[0] as u32) & 1).wrapping_neg();
                 let x1odd = ((self.x1.encode()[0] as u32) & 1).wrapping_neg();
-                let x0z = self.x0.iszero();
+                let x0z = self.x0.is_zero();
                 self.set_condneg(x0odd | (x0z & x1odd));
 
                 return r;
@@ -737,17 +739,17 @@ macro_rules! define_fp2_core {
                     let blen = if (n - i) > 200 { 200 } else { n - i };
                     let mut tt = [Self::ZERO; 200];
                     tt[0] = xx[i];
-                    let zz0 = tt[0].iszero();
+                    let zz0 = tt[0].is_zero();
                     tt[0].set_cond(&Self::ONE, zz0);
                     for j in 1..blen {
                         tt[j] = xx[i + j];
-                        tt[j].set_cond(&Self::ONE, tt[j].iszero());
+                        tt[j].set_cond(&Self::ONE, tt[j].is_zero());
                         tt[j] *= tt[j - 1];
                     }
                     let mut k = Self::ONE / tt[blen - 1];
                     for j in (1..blen).rev() {
                         let mut x = xx[i + j];
-                        let zz = x.iszero();
+                        let zz = x.is_zero();
                         x.set_cond(&Self::ONE, zz);
                         xx[i + j].set_cond(&(k * tt[j - 1]), !zz);
                         k *= x;
@@ -762,17 +764,7 @@ macro_rules! define_fp2_core {
 
         impl ::std::fmt::Display for $typename {
             fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-                let r = self.encode();
-
-                let x0_bytes = &r[..<$Fp>::ENCODED_LENGTH];
-                let x1_bytes = &r[<$Fp>::ENCODED_LENGTH..];
-
-                let x0_big =
-                    ::num_bigint::BigInt::from_bytes_le(::num_bigint::Sign::Plus, x0_bytes);
-                let x1_big =
-                    ::num_bigint::BigInt::from_bytes_le(::num_bigint::Sign::Plus, x1_bytes);
-
-                write!(f, "i*{} + {}", x1_big, x0_big)
+                write!(f, "i*{} + {}", self.x1, self.x0)
             }
         }
 
@@ -1050,8 +1042,8 @@ macro_rules! define_fp2_core {
             //
             // Rust friends:
             // I am very happy to have feedback on ways to refactor this!
-            fn iszero(self) -> u32 {
-                self.iszero()
+            fn is_zero(self) -> u32 {
+                self.is_zero()
             }
             fn equals(self, rhs: &Self) -> u32 {
                 self.equals(rhs)

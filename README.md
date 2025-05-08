@@ -41,8 +41,6 @@ Tests can be run:
 cargo test --features test_macros
 ```
 
-TODO: can we automatically enable the feature flag `test_macros` when running `cargo test`?
-
 ### Benchmarks
 
 Benchmarks can be run with:

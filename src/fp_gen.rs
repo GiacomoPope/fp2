@@ -1,47 +1,25 @@
-// NOTE:
-// The majority of this code was written by Thomas Pornin, which is part of a
-// larger work in progress implementing another project which is still ongoing.
-// It is similar in form to the macros in the cryptographic library for rust:
-// crrl. https://github.com/pornin/crrl
-// This code was also used in the (2,2)-isogeny implementation
-// https://github.com/ThetaIsogenies/two-isogenies
+//! A macro to define efficient and constant-time arithmetic for finite fields Fp with
+//! p = 3 mod 4 using Montgomery multiplication.
+//!
+//! # Authorship and History
+//!
+//! The majority of this code has been adapted from code written by Thomas Pornin
+//! from collaboration in previous projects and several methods which appear in other
+//! macros in the cryptographic research library crrl <https://github.com/pornin/crrl>
+//!
+//! This code has also been used in a handful of isogeny-based cryptography research
+//! projects before being rewritten for this crate, including:
+//! - <https://github.com/ThetaIsogenies/two-isogenies>
+//! - <https://github.com/GiacomoPope/cubical-pairings>
+//! - <https://github.com/GiacomoPope/ThetaCGL>
 
-// A macro to define the finite field Fp, all functions are designed to run in
-// constant time. To construct the finite field, see the examples in fields.rs
-// which include three distinct cases. To generate your own constants for the
-// macro, the sage file `gen_fp.sage` will compute everything needed given a
-// prime modulus.
-
-// Macro expectations:
-//   modulus p is prime and larger than 2^64
-//   p = 7 mod 8 (required in square and fourth roots)
-//   defined constants:
-//      MODULUS ([u64; N])        modulus p (little-endian)
-//      HALF_MODULUS ([u64; N])   (p + 1)/2 (little-endian)
-//      R_VAL ([u64; N])          2^(64*N) mod p
-//      DR_VAL ([u64; N])         2^(64*N+1) mod p
-//      R2_VAL ([u64; N])         2^(2*64*N) mod p
-//      P0I (u64)                 -1/p mod 2^64
-//      TFIXDIV_VAL               corrective factor for division
-//      TDEC_VAL                  2^(64*(2*N-1)) mod p
-//      SQRT_EH, SQRT_EL          encoding of (p + 1)/4
-//      P1 (u64)                  floor(p / 2^(BITLEN - 32))
-//      P1DIV_M (u64)             1 + floor((2^32 - P1)*2^64 / P1)
-//      NQR_RE_VAL                NQR_RE + i is a non-square in GF(p^2)
-//
-//   The macro defines the constant N = ceil(BITLEN / 64).
-//
-// For divisions:
-//    let n1 = floor((2*BITLEN - 34) / 31)
-//    let n2 = 2*BITLEN - 31*n1 - 2
-//    TFIXDIV_VAL = 2^(33*n1 + 64 - n2 + 2*64*N) mod p
-//
-// For square roots:
-//    let e = (p + 1)/4
-//    SQRT_EL (usize) is such that e = 0 mod 2^(5*SQRT_EL)
-//    SQRT_EH ([u8; ...]) encodes e/2^(5*SQRT_EL) in base 2^5 (little-endian)
-//    It is best for performance is SQRT_EL is as big as possible
-//
+/// A macro to define the finite field Fp, all functions are designed to run in
+/// constant time. Assumes that the characteristic is p = 3 mod 4.
+///
+/// Macro expectations:
+/// - A typename for the finite field generated
+/// - An array of `N` words which represent the finite field characteristic
+///   in base 2^64
 #[macro_export]
 macro_rules! define_fp_core {
     (
@@ -157,7 +135,7 @@ macro_rules! define_fp_core {
 
             /// Return 0xFFFFFFFF if this value is zero, or 0x00000000 otherwise.
             #[inline]
-            pub fn iszero(self) -> u32 {
+            pub fn is_zero(self) -> u32 {
                 let mut x = self.0[0];
                 for i in 1..Self::N {
                     x |= self.0[i];
@@ -389,7 +367,7 @@ macro_rules! define_fp_core {
                 r
             }
 
-            /// Compute the square of this value.
+            /// Square this value n times in place
             #[inline(always)]
             pub fn set_xsquare(&mut self, n: u32) {
                 for _ in 0..n {
@@ -397,7 +375,7 @@ macro_rules! define_fp_core {
                 }
             }
 
-            /// Compute the square of this value.
+            /// Square this value n times
             #[inline(always)]
             pub fn xsquare(self, n: u32) -> Self {
                 let mut r = self;
@@ -502,7 +480,7 @@ macro_rules! define_fp_core {
                 self.set_mul2();
             }
 
-            /// Compute the quadruple of this value.
+            /// Compute 8 times this value.
             #[inline(always)]
             pub fn mul8(self) -> Self {
                 let mut r = self;
@@ -940,7 +918,7 @@ macro_rules! define_fp_core {
 
                 // If y != 0 then b = 1 at this point. If y == 0, then we
                 // force the result to zero.
-                let w = !y.iszero();
+                let w = !y.is_zero();
                 let w = ((w as u64) << 32) | (w as u64);
                 for i in 0..Self::N {
                     self.0[i] &= w;
@@ -1284,7 +1262,7 @@ macro_rules! define_fp_core {
                 // which we need to convert to the expected value (+1 or -1).
                 // If y == 0, then we return 0, per the API.
                 let r = 1u32.wrapping_sub(((ls as u32) & 1) << 1);
-                (r & !(self.iszero() as u32)) as i32
+                (r & !(self.is_zero() as u32)) as i32
             }
 
             /// Encode this value into bytes. Encoding uses little-endian, has
@@ -1909,14 +1887,30 @@ macro_rules! define_fp_core {
         /*
          * Implementations of all the traits needed to use the simple operators
          * (+, *, /...) on field element instances, with or without references.
+         * as well as a display method.
          */
 
         impl ::std::fmt::Display for $typename {
             fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+                // Encode the value to get a canonical value
                 let v_bytes = self.encode();
-                let v_big = ::num_bigint::BigInt::from_bytes_le(::num_bigint::Sign::Plus, &v_bytes);
 
-                write!(f, "{}", v_big.to_string())
+                // Convert the bytes into a base-16 string
+                let mut v_hex_string: String = v_bytes
+                    .iter()
+                    .rev()
+                    .map(|byte| format!("{:02x}", byte)) // Format each byte as a two-digit hex
+                    .collect();
+
+                // Remove leading zeros
+                v_hex_string = v_hex_string.trim_start_matches("0").to_string();
+
+                // If the value was zero, we need to add a zero back
+                if v_hex_string.is_empty() {
+                    v_hex_string = String::from("0");
+                }
+
+                write!(f, "0x{}", v_hex_string)
             }
         }
 
