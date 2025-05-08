@@ -1,7 +1,15 @@
 [package]
 name = "fp2_rs"
-version = "0.1.0"
-edition = "2021"
+version = "0.0.1"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+keywords = ["finite field", "isogeny", "isogenies"]
+categories = ["cryptography"]
+authors = ["Giacomo Pope <giacomopope@gmail.com>"]
+description = "An efficient, flexible and constant time Rust implementation of the extension field Fp^2 with modulus x^2 + 1"
+homepage = "https://github.com/GiacomoPope/fp2-rs/"
+repository = "https://github.com/GiacomoPope/fp2-rs/"
+readme = "README.md"
 
 [features]
 default = ["test_macros"]
