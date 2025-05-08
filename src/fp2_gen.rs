@@ -72,12 +72,12 @@ macro_rules! define_fp2_core {
             }
 
             #[inline]
-            pub fn iszero(self) -> u32 {
+            fn iszero(self) -> u32 {
                 self.x0.iszero() & self.x1.iszero()
             }
 
             #[inline]
-            pub fn equals(self, rhs: &Self) -> u32 {
+            fn equals(self, rhs: &Self) -> u32 {
                 self.x0.equals(&rhs.x0) & self.x1.equals(&rhs.x1)
             }
 
@@ -94,18 +94,18 @@ macro_rules! define_fp2_core {
             }
 
             #[inline]
-            pub fn set_neg(&mut self) {
+            fn set_neg(&mut self) {
                 self.x0.set_neg();
                 self.x1.set_neg();
             }
 
             #[inline]
-            pub fn set_conjugate(&mut self) {
+            fn set_conjugate(&mut self) {
                 self.x1.set_neg();
             }
 
             #[inline]
-            pub fn conjugate(self) -> Self {
+            fn conjugate(self) -> Self {
                 Self {
                     x0: self.x0,
                     x1: -&self.x1,
@@ -134,14 +134,14 @@ macro_rules! define_fp2_core {
             }
 
             #[inline]
-            pub fn mul_old(self, rhs: Self) -> Self {
+            fn mul_old(self, rhs: Self) -> Self {
                 let mut r = self;
                 r.set_mul_old(&rhs);
                 r
             }
 
             #[inline(always)]
-            pub fn set_mul(&mut self, rhs: &Self) {
+            fn set_mul(&mut self, rhs: &Self) {
                 // Computes x*y from:
                 // x = (x0 + i*x1)
                 // y = (y0 + i*y1)
@@ -157,14 +157,14 @@ macro_rules! define_fp2_core {
             }
 
             #[inline]
-            pub fn mul_new(self, rhs: Self) -> Self {
+            fn mul_new(self, rhs: Self) -> Self {
                 let mut r = self;
                 r.set_mul(&rhs);
                 r
             }
 
             #[inline]
-            pub fn set_square(&mut self) {
+            fn set_square(&mut self) {
                 // (x0 + i*x1)^2 = (x0^2 - x1^2) + 2*i*(x0*x1)
                 //               = (x0 + x1)*(x0 - x1) + i*(2*x0*x1)
                 let a = &self.x0 + &self.x1;
@@ -176,98 +176,98 @@ macro_rules! define_fp2_core {
             }
 
             #[inline]
-            pub fn square(self) -> Self {
+            fn square(self) -> Self {
                 let mut r = self;
                 r.set_square();
                 r
             }
 
             #[inline]
-            pub fn set_half(&mut self) {
+            fn set_half(&mut self) {
                 self.x0.set_half();
                 self.x1.set_half();
             }
 
             #[inline]
-            pub fn half(self) -> Self {
+            fn half(self) -> Self {
                 let mut r = self;
                 r.set_half();
                 r
             }
 
             #[inline]
-            pub fn set_mul2(&mut self) {
+            fn set_mul2(&mut self) {
                 self.x0.set_mul2();
                 self.x1.set_mul2();
             }
 
             #[inline]
-            pub fn mul2(self) -> Self {
+            fn mul2(self) -> Self {
                 let mut r = self;
                 r.set_mul2();
                 r
             }
 
             #[inline]
-            pub fn set_mul3(&mut self) {
+            fn set_mul3(&mut self) {
                 self.x0.set_mul3();
                 self.x1.set_mul3();
             }
 
             #[inline]
-            pub fn mul3(self) -> Self {
+            fn mul3(self) -> Self {
                 let mut r = self;
                 r.set_mul3();
                 r
             }
 
             #[inline]
-            pub fn set_mul4(&mut self) {
+            fn set_mul4(&mut self) {
                 self.x0.set_mul4();
                 self.x1.set_mul4();
             }
 
             #[inline]
-            pub fn mul4(self) -> Self {
+            fn mul4(self) -> Self {
                 let mut r = self;
                 r.set_mul4();
                 r
             }
 
             #[inline]
-            pub fn set_mul8(&mut self) {
+            fn set_mul8(&mut self) {
                 self.x0.set_mul8();
                 self.x1.set_mul8();
             }
 
             #[inline]
-            pub fn mul8(self) -> Self {
+            fn mul8(self) -> Self {
                 let mut r = self;
                 r.set_mul8();
                 r
             }
 
             #[inline]
-            pub fn set_mul_small(&mut self, k: i32) {
+            fn set_mul_small(&mut self, k: i32) {
                 self.x0.set_mul_small(k);
                 self.x1.set_mul_small(k);
             }
 
             #[inline]
-            pub fn mul_small(self, k: i32) -> Self {
+            fn mul_small(self, k: i32) -> Self {
                 let mut r = self;
                 r.set_mul_small(k);
                 r
             }
 
             #[inline]
-            pub fn set_select(&mut self, a: &Self, b: &Self, ctl: u32) {
+            fn set_select(&mut self, a: &Self, b: &Self, ctl: u32) {
                 self.x0.set_select(&a.x0, &b.x0, ctl);
                 self.x1.set_select(&a.x1, &b.x1, ctl);
             }
 
             #[inline]
-            pub fn select(a: &Self, b: &Self, ctl: u32) -> Self {
+            fn select(a: &Self, b: &Self, ctl: u32) -> Self {
                 Self {
                     x0: <$Fp>::select(&a.x0, &b.x0, ctl),
                     x1: <$Fp>::select(&a.x1, &b.x1, ctl),
@@ -275,13 +275,13 @@ macro_rules! define_fp2_core {
             }
 
             #[inline]
-            pub fn set_cond(&mut self, rhs: &Self, ctl: u32) {
+            fn set_cond(&mut self, rhs: &Self, ctl: u32) {
                 self.x0.set_cond(&rhs.x0, ctl);
                 self.x1.set_cond(&rhs.x1, ctl);
             }
 
             #[inline]
-            pub fn set_condneg(&mut self, ctl: u32) {
+            fn set_condneg(&mut self, ctl: u32) {
                 let y0 = -(&self.x0);
                 let y1 = -(&self.x1);
                 self.x0.set_cond(&y0, ctl);
@@ -289,7 +289,7 @@ macro_rules! define_fp2_core {
             }
 
             #[inline]
-            pub fn condswap(a: &mut Self, b: &mut Self, ctl: u32) {
+            fn condswap(a: &mut Self, b: &mut Self, ctl: u32) {
                 <$Fp>::condswap(&mut a.x0, &mut b.x0, ctl);
                 <$Fp>::condswap(&mut a.x1, &mut b.x1, ctl);
             }
@@ -308,7 +308,7 @@ macro_rules! define_fp2_core {
             }
 
             #[inline]
-            pub fn set_invert(&mut self) {
+            fn set_invert(&mut self) {
                 // 1/(x0 + i*x1) = (x0 - i*x1)/(x0^2 + x1^2)
                 let mut z = self.x0.square();
                 z += &self.x1.square();
@@ -319,7 +319,7 @@ macro_rules! define_fp2_core {
             }
 
             #[inline]
-            pub fn invert(self) -> Self {
+            fn invert(self) -> Self {
                 let mut r = self;
                 r.set_invert();
                 r
@@ -330,7 +330,7 @@ macro_rules! define_fp2_core {
             ///  +1   if this value is a non-zero quadratic residue
             ///  -1   if this value is not a quadratic residue
             #[inline]
-            pub fn legendre(self) -> i32 {
+            fn legendre(self) -> i32 {
                 // x = x0 + i*x1 is a square in GF(p^2) if and only if
                 // x0^2 + x1^2 is a square in GF(p). Moreover, x0^2 + x1^2 is
                 // zero if and only if x is zero.
@@ -343,7 +343,7 @@ macro_rules! define_fp2_core {
             /// sign is 0 (i.e. if the "real part" is non-zero, then it is an even
             /// integer; if the "real part" is zero, then the "imaginary part" is
             /// an even integer). On failure, this value is set to 0.
-            pub fn set_sqrt(&mut self) -> u32 {
+            fn set_sqrt(&mut self) -> u32 {
                 // x^p = (x0 + i*x1)^p = x0 - i*x1  (Frobenius automorphism)
                 // Thus: x^(p+1) = (x0 + i*x1)*(x0 - i*x1) = x0^2 + x1^2, which
                 // is an element of GF(p). All elements of GF(p) are squares in
@@ -417,7 +417,7 @@ macro_rules! define_fp2_core {
                 r
             }
 
-            pub fn sqrt(self) -> (Self, u32) {
+            fn sqrt(self) -> (Self, u32) {
                 let mut y = self;
                 let r = y.set_sqrt();
                 (y, r)
@@ -429,7 +429,7 @@ macro_rules! define_fp2_core {
             /// sign is 0 (i.e. if the "real part" is non-zero, then it is an even
             /// integer; if the "real part" is zero, then the "imaginary part" is
             /// an even integer). On failure, this value is set to 0.
-            pub fn set_fourth_root(&mut self) -> u32 {
+            fn set_fourth_root(&mut self) -> u32 {
                 // The aim of this function is to generalise set_sqrt by finding
                 // an element of Fp^2, y = y0 + i*y1 such that x = x0 + i x1 = y^4
                 //
@@ -547,7 +547,7 @@ macro_rules! define_fp2_core {
                 return r;
             }
 
-            pub fn fourth_root(self) -> (Self, u32) {
+            fn fourth_root(self) -> (Self, u32) {
                 let mut y = self;
                 let r = y.set_fourth_root();
                 (y, r)
@@ -555,14 +555,14 @@ macro_rules! define_fp2_core {
 
             /// Raise this value to the power e. Exponent e is encoded in
             /// unsigned little-endian convention over exactly ebitlen bits.
-            pub fn set_pow(&mut self, e: &[u8], ebitlen: usize) {
+            fn set_pow(&mut self, e: &[u8], ebitlen: usize) {
                 self.set_pow_ext(e, 0, ebitlen);
             }
 
             /// Raise this value to the power e. Exponent e is encoded in
             /// unsigned little-endian convention, over exactly ebitlen bits,
             /// and starting at the bit offset eoff.
-            pub fn set_pow_ext(&mut self, e: &[u8], eoff: usize, ebitlen: usize) {
+            fn set_pow_ext(&mut self, e: &[u8], eoff: usize, ebitlen: usize) {
                 // TODO: implement a window optimization to make fewer
                 // multiplications.
                 let x = *self;
@@ -581,7 +581,7 @@ macro_rules! define_fp2_core {
             /// Return this value to the power e (as a new element). Exponent e
             /// is encoded in unsigned little-endian convention over exactly
             /// ebitlen bits.
-            pub fn pow(self, e: &[u8], ebitlen: usize) -> Self {
+            fn pow(self, e: &[u8], ebitlen: usize) -> Self {
                 let mut x = self;
                 x.set_pow(e, ebitlen);
                 x
@@ -590,20 +590,20 @@ macro_rules! define_fp2_core {
             /// Return this value to the power e (as a new element). Exponent e
             /// is encoded in unsigned little-endian convention over exactly
             /// ebitlen bits, and starting at the bit offset eoff.
-            pub fn pow_ext(self, e: &[u8], eoff: usize, ebitlen: usize) -> Self {
+            fn pow_ext(self, e: &[u8], eoff: usize, ebitlen: usize) -> Self {
                 let mut x = self;
                 x.set_pow_ext(e, eoff, ebitlen);
                 x
             }
 
-            pub fn encode(self) -> [u8; Self::ENCODED_LENGTH] {
+            fn encode(self) -> [u8; Self::ENCODED_LENGTH] {
                 let mut r = [0u8; Self::ENCODED_LENGTH];
                 r[..<$Fp>::ENCODED_LENGTH].copy_from_slice(&self.x0.encode());
                 r[<$Fp>::ENCODED_LENGTH..].copy_from_slice(&self.x1.encode());
                 r
             }
 
-            pub fn decode(buf: &[u8]) -> (Self, u32) {
+            fn decode(buf: &[u8]) -> (Self, u32) {
                 if buf.len() != Self::ENCODED_LENGTH {
                     return (Self::ZERO, 0);
                 }
@@ -617,17 +617,14 @@ macro_rules! define_fp2_core {
 
             /// Set this structure to a random field element (indistinguishable
             /// from uniform generation).
-            pub fn set_rand<T: ::rand_core::CryptoRng + ::rand_core::RngCore>(
-                &mut self,
-                rng: &mut T,
-            ) {
+            fn set_rand<T: ::rand_core::CryptoRng + ::rand_core::RngCore>(&mut self, rng: &mut T) {
                 self.x0.set_rand(rng);
                 self.x1.set_rand(rng);
             }
 
             /// Return a new random field element (indistinguishable from
             /// uniform generation).
-            pub fn rand<T: ::rand_core::CryptoRng + ::rand_core::RngCore>(rng: &mut T) -> Self {
+            fn rand<T: ::rand_core::CryptoRng + ::rand_core::RngCore>(rng: &mut T) -> Self {
                 let mut x = Self::ZERO;
                 x.set_rand(rng);
                 x
@@ -637,7 +634,7 @@ macro_rules! define_fp2_core {
             /// MUST be at most ebitlen. This is constant-time for both the
             /// base value (self) and the exponent (e); the exponent maximum
             /// size (ebitlen) is considered non-secret.
-            pub fn set_pow_u64(&mut self, e: u64, ebitlen: usize) {
+            fn set_pow_u64(&mut self, e: u64, ebitlen: usize) {
                 match ebitlen {
                     0 => {
                         *self = Self::ONE;
@@ -664,7 +661,7 @@ macro_rules! define_fp2_core {
             /// MUST be at most ebitlen. This is constant-time for both the
             /// base value (self) and the exponent (e); the exponent maximum
             /// size (ebitlen) is considered non-secret.
-            pub fn pow_u64(self, e: u64, ebitlen: usize) -> Self {
+            fn pow_u64(self, e: u64, ebitlen: usize) -> Self {
                 let mut x = self;
                 x.set_pow_u64(e, ebitlen);
                 x
@@ -672,7 +669,7 @@ macro_rules! define_fp2_core {
 
             /// Raise this value to the power e. The exponent is considered
             /// non-secret.
-            pub fn set_pow_u64_vartime(&mut self, e: u64) {
+            fn set_pow_u64_vartime(&mut self, e: u64) {
                 match e {
                     0 => {
                         *self = Self::ONE;
@@ -711,7 +708,7 @@ macro_rules! define_fp2_core {
 
             /// Return this value to the power e. The exponent is considered
             /// non-secret.
-            pub fn pow_u64_vartime(self, e: u64) -> Self {
+            fn pow_u64_vartime(self, e: u64) -> Self {
                 let mut x = self;
                 x.set_pow_u64_vartime(e);
                 x
@@ -721,11 +718,11 @@ macro_rules! define_fp2_core {
             ///    (hashcode(x0) << 1) | (hashcode(x1) & 1)
             /// i.e. bit 0 is bit 0 of x1, and bits 1..63 are bits 0..62 of x0
             /// (both in Montgomery representation).
-            pub fn hashcode(self) -> u64 {
+            fn hashcode(self) -> u64 {
                 (self.x0.hashcode() << 1) | (self.x1.hashcode() & 1)
             }
 
-            pub fn batch_invert(xx: &mut [Self]) {
+            fn batch_invert(xx: &mut [Self]) {
                 // We use Montgomery's trick:
                 //   1/u = v*(1/(u*v))
                 //   1/v = u*(1/(u*v))
@@ -1046,8 +1043,13 @@ macro_rules! define_fp2_core {
             const MINUS_ZETA: Self = Self::ZETA;
 
             // Re-export functions for Trait
-            // TODO: is this bad practice to just re-export everything?
-            // It seems like bad practice...
+            // Technically, we could define many of the above functions
+            // directly here rather than in `impl $typename`, but it felt
+            // easier to read to keep everything together above and re-export
+            // for the trait in a consistant way.
+            //
+            // Rust friends:
+            // I am very happy to have feedback on ways to refactor this!
             fn iszero(self) -> u32 {
                 self.iszero()
             }

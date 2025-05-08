@@ -81,6 +81,8 @@ pub trait Fq:
     fn set_cond(&mut self, rhs: &Self, ctl: u32);
     fn set_condneg(&mut self, ctl: u32);
     fn select(a: &Self, b: &Self, ctl: u32) -> Self;
+
+    //
     fn condswap(a: &mut Self, b: &mut Self, ctl: u32);
 
     // Encoding and Decoding
