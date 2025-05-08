@@ -100,12 +100,12 @@ macro_rules! define_fp2_core {
             }
 
             #[inline]
-            pub fn set_conj(&mut self) {
+            pub fn set_conjugate(&mut self) {
                 self.x1.set_neg();
             }
 
             #[inline]
-            pub fn conj(self) -> Self {
+            pub fn conjugate(self) -> Self {
                 Self {
                     x0: self.x0,
                     x1: -&self.x1,
@@ -1033,6 +1033,167 @@ macro_rules! define_fp2_core {
             }
         }
 
-        // impl $crate::fq::Fq for $typename {}
+        impl $crate::fq::Fq for $typename {
+            // Reexport constants for Trait
+            const ENCODED_LENGTH: usize = Self::ENCODED_LENGTH;
+            const ZERO: Self = Self::ZERO;
+            const ONE: Self = Self::ONE;
+            const TWO: Self = Self::TWO;
+            const THREE: Self = Self::THREE;
+            const FOUR: Self = Self::FOUR;
+            const MINUS_ONE: Self = Self::MINUS_ONE;
+            const ZETA: Self = Self::ZETA;
+            const MINUS_ZETA: Self = Self::ZETA;
+
+            // Re-export functions for Trait
+            // TODO: is this bad practice to just re-export everything?
+            // It seems like bad practice...
+            fn iszero(self) -> u32 {
+                self.iszero()
+            }
+            fn equals(self, rhs: &Self) -> u32 {
+                self.equals(rhs)
+            }
+
+            fn set_neg(&mut self) {
+                self.set_neg()
+            }
+            fn set_half(&mut self) {
+                self.set_half()
+            }
+            fn set_mul2(&mut self) {
+                self.set_mul2()
+            }
+            fn set_mul3(&mut self) {
+                self.set_mul3()
+            }
+            fn set_mul4(&mut self) {
+                self.set_mul4()
+            }
+            fn set_mul8(&mut self) {
+                self.set_mul8()
+            }
+
+            fn half(self) -> Self {
+                self.half()
+            }
+            fn mul2(self) -> Self {
+                self.mul2()
+            }
+            fn mul3(self) -> Self {
+                self.mul3()
+            }
+            fn mul4(self) -> Self {
+                self.mul4()
+            }
+            fn mul8(self) -> Self {
+                self.mul8()
+            }
+
+            fn set_conjugate(&mut self) {
+                self.set_conjugate();
+            }
+            fn set_mul_small(&mut self, k: i32) {
+                self.set_mul_small(k)
+            }
+            fn set_square(&mut self) {
+                self.set_square()
+            }
+            fn set_invert(&mut self) {
+                self.set_invert()
+            }
+            fn set_pow(&mut self, e: &[u8], ebitlen: usize) {
+                self.set_pow(e, ebitlen)
+            }
+            fn set_pow_ext(&mut self, e: &[u8], eoff: usize, ebitlen: usize) {
+                self.set_pow_ext(e, eoff, ebitlen)
+            }
+            fn set_pow_u64(&mut self, e: u64, ebitlen: usize) {
+                self.set_pow_u64(e, ebitlen)
+            }
+            fn set_pow_u64_vartime(&mut self, e: u64) {
+                self.set_pow_u64_vartime(e)
+            }
+
+            fn conjugate(self) -> Self {
+                self.conjugate()
+            }
+            fn mul_small(self, k: i32) -> Self {
+                self.mul_small(k)
+            }
+            fn square(self) -> Self {
+                self.square()
+            }
+            fn invert(self) -> Self {
+                self.invert()
+            }
+            fn pow(self, e: &[u8], ebitlen: usize) -> Self {
+                self.pow(e, ebitlen)
+            }
+            fn pow_ext(self, e: &[u8], eoff: usize, ebitlen: usize) -> Self {
+                self.pow_ext(e, eoff, ebitlen)
+            }
+            fn pow_u64(&mut self, e: u64, ebitlen: usize) -> Self {
+                self.pow_u64(e, ebitlen)
+            }
+            fn pow_u64_vartime(&mut self, e: u64) -> Self {
+                self.pow_u64_vartime(e)
+            }
+
+            fn set_sqrt(&mut self) -> u32 {
+                self.set_sqrt()
+            }
+            fn set_fourth_root(&mut self) -> u32 {
+                self.set_fourth_root()
+            }
+            fn sqrt(self) -> (Self, u32) {
+                self.sqrt()
+            }
+            fn fourth_root(self) -> (Self, u32) {
+                self.fourth_root()
+            }
+
+            fn legendre(self) -> i32 {
+                self.legendre()
+            }
+
+            fn batch_invert(xx: &mut [Self]) {
+                Self::batch_invert(xx)
+            }
+
+            fn set_select(&mut self, a: &Self, b: &Self, ctl: u32) {
+                self.set_select(a, b, ctl)
+            }
+            fn set_cond(&mut self, rhs: &Self, ctl: u32) {
+                self.set_cond(rhs, ctl)
+            }
+            fn set_condneg(&mut self, ctl: u32) {
+                self.set_condneg(ctl)
+            }
+            fn select(a: &Self, b: &Self, ctl: u32) -> Self {
+                Self::select(a, b, ctl)
+            }
+            fn condswap(a: &mut Self, b: &mut Self, ctl: u32) {
+                Self::condswap(a, b, ctl)
+            }
+
+            fn encode(self) -> [u8; Self::ENCODED_LENGTH] {
+                self.encode()
+            }
+            fn decode(buf: &[u8]) -> (Self, u32) {
+                Self::decode(buf)
+            }
+
+            fn set_rand<R: ::rand_core::CryptoRng + ::rand_core::RngCore>(&mut self, rng: &mut R) {
+                self.set_rand(rng)
+            }
+            fn rand<R: ::rand_core::CryptoRng + ::rand_core::RngCore>(rng: &mut R) -> Self {
+                Self::rand(rng)
+            }
+
+            fn hashcode(self) -> u64 {
+                self.hashcode()
+            }
+        }
     };
 } // End of macro: define_fp2_core
