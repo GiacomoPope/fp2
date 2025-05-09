@@ -20,7 +20,7 @@
 /// - A typename for the finite field generated.
 /// - A finite field type Fp with p = 3 mod 4, for example one generated with the macro `define_fp_core`.
 #[macro_export]
-macro_rules! define_fp2_core {
+macro_rules! define_fp2_from_type {
     (
         typename = $typename:ident,
         base_field = $Fp:ty,
@@ -71,6 +71,36 @@ macro_rules! define_fp2_core {
 
             pub const fn new(re: &$Fp, im: &$Fp) -> Self {
                 Self { x0: *re, x1: *im }
+            }
+
+            /// Create an element by converting the provided integer.
+            #[inline(always)]
+            pub fn from_i32(x: i32) -> Self {
+                let mut r = Self::ZERO;
+                r.x0 = <$Fp>::from_i32(x);
+                r
+            }
+
+            /// Create an element by converting the provided integer.
+            #[inline(always)]
+            pub fn from_i64(x: i64) -> Self {
+                let mut r = Self::ZERO;
+                r.x0 = <$Fp>::from_i64(x);
+                r
+            }
+
+            /// Create an element by converting the provided integer.
+            #[inline(always)]
+            pub fn from_u32(x: u32) -> Self {
+                Self::from_u64(x as u64)
+            }
+
+            /// Create an element by converting the provided integer.
+            #[inline(always)]
+            pub fn from_u64(x: u64) -> Self {
+                let mut r = Self::ZERO;
+                r.x0 = <$Fp>::from_u64(x);
+                r
             }
 
             #[inline]
@@ -615,6 +645,20 @@ macro_rules! define_fp2_core {
                 x0.set_cond(&<$Fp>::ZERO, !cx);
                 x1.set_cond(&<$Fp>::ZERO, !cx);
                 (Self { x0, x1 }, cx)
+            }
+
+            /// Decode the provided bytes into a field element. The source slice
+            /// can have arbitrary length; the bytes are interpreted with the
+            /// unsigned little-endian convention (no sign bit), with the first half
+            /// of the bytes corresponding to x0 and the latter half to x1. For each
+            /// resulting integer, the result is reduced modulo the field modulus p.
+            /// By definition, this function does not enforce canonicality of the source
+            /// value.
+            fn decode_reduce(buf: &[u8]) -> Self {
+                let n = buf.len() >> 1;
+                let x0 = <$Fp>::decode_reduce(&buf[..n]);
+                let x1 = <$Fp>::decode_reduce(&buf[n..]);
+                Self { x0, x1 }
             }
 
             /// Set this structure to a random field element (indistinguishable
@@ -1190,4 +1234,23 @@ macro_rules! define_fp2_core {
             }
         }
     };
-} // End of macro: define_fp2_core
+} // End of macro: define_fp2_from_type
+
+/// A macro to define the degree two extension of the finite field Fp, with
+/// modulus x^2 + 1 directly from the modulus.
+/// All functions are designed to run in constant time.
+///
+/// Macro expectations:
+/// - A typename for the finite field generated.
+/// - An array of `N` words which represent the finite field characteristic
+///   in base 2^64
+#[macro_export]
+macro_rules! define_fp2_from_modulus {
+    (
+        typename = $typename:ident,
+        modulus = $modulus:expr,
+    ) => {
+        fp2::define_fp_core!(typename = ExtensionBaseField, modulus = $modulus,);
+        fp2::define_fp2_from_type!(typename = $typename, base_field = ExtensionBaseField,);
+    };
+}

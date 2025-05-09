@@ -68,7 +68,7 @@ if __name__ == "__main__":
     );
 
     fp2_rs::define_fp_tests!(Fp139);
-    fp2_rs::define_fp2_tests!(Fp{BITLEN}, Fp{BITLEN}Ext, {nqr});
+    fp2_rs::define_fp2_tests!(Fp{BITLEN}Ext, {nqr});
     """
 
     print(str)

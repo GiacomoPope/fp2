@@ -214,47 +214,52 @@ macro_rules! define_fp_tests {
 /// A macro to generate test vectors for a given finite field Fp^2.
 ///
 /// Macro expectations:
-/// - $Fp: a finite field type of degree 1
 /// - $Fp2: a degree two extension Fp^2 of the finite field Fp
 /// - nqr: a u64 such that `nqr + i` is a non-quadratic residue in Fp^2
 #[cfg_attr(feature = "test_macros", macro_export)]
 #[cfg_attr(not(feature = "test_macros"), allow(unused_macros))]
 macro_rules! define_fp2_tests {
-    ($Fp:ty, $Fp2:ty, $nqr:literal) => {
+    ($Fp2:ty, $modulus:expr, $nqr:literal) => {
         use ::num_bigint::ToBigInt as _;
         use ::sha2::Digest as _;
 
+        // Number of words in characteristic
+        pub static N: usize = $modulus.len();
+        pub static FP_ENCODED_LENGTH: usize = <$Fp2>::ENCODED_LENGTH >> 1;
+
         fn check_fp2_ops(va: &[u8], vb: &[u8], with_sqrt_and_fourth_root: bool) {
-            let mut zpww = [0u32; <$Fp>::N * 2];
-            for i in 0..<$Fp>::N {
-                zpww[2 * i] = <$Fp>::MODULUS[i] as u32;
-                zpww[2 * i + 1] = (<$Fp>::MODULUS[i] >> 32) as u32;
+            let mut zpww = [0u32; N * 2];
+            for i in 0..N {
+                zpww[2 * i] = $modulus[i] as u32;
+                zpww[2 * i + 1] = ($modulus[i] >> 32) as u32;
             }
             let zp = ::num_bigint::BigInt::from_slice(::num_bigint::Sign::Plus, &zpww);
 
             let alen = va.len() >> 1;
             let blen = vb.len() >> 1;
 
-            let a0 = <$Fp>::decode_reduce(&va[..alen]);
-            let a1 = <$Fp>::decode_reduce(&va[alen..]);
-            let b0 = <$Fp>::decode_reduce(&vb[..blen]);
-            let b1 = <$Fp>::decode_reduce(&vb[blen..]);
-            let za0 = ::num_bigint::BigInt::from_bytes_le(::num_bigint::Sign::Plus, &a0.encode());
-            let za1 = ::num_bigint::BigInt::from_bytes_le(::num_bigint::Sign::Plus, &a1.encode());
-            let zb0 = ::num_bigint::BigInt::from_bytes_le(::num_bigint::Sign::Plus, &b0.encode());
-            let zb1 = ::num_bigint::BigInt::from_bytes_le(::num_bigint::Sign::Plus, &b1.encode());
-            let a = <$Fp2>::new(&a0, &a1);
-            let b = <$Fp2>::new(&b0, &b1);
+            // let a0 = <$Fp>::decode_reduce(&va[..alen]);
+            // let a1 = <$Fp>::decode_reduce(&va[alen..]);
+            // let b0 = <$Fp>::decode_reduce(&vb[..blen]);
+            // let b1 = <$Fp>::decode_reduce(&vb[blen..]);
+            let a = <$Fp2>::decode_reduce(va);
+            let b = <$Fp2>::decode_reduce(vb);
+
+            // Convert the reduced values to big-numbers for comparison
+            let za0 = ::num_bigint::BigInt::from_bytes_le(::num_bigint::Sign::Plus, &a.x0.encode());
+            let za1 = ::num_bigint::BigInt::from_bytes_le(::num_bigint::Sign::Plus, &a.x1.encode());
+            let zb0 = ::num_bigint::BigInt::from_bytes_le(::num_bigint::Sign::Plus, &b.x0.encode());
+            let zb1 = ::num_bigint::BigInt::from_bytes_le(::num_bigint::Sign::Plus, &b.x1.encode());
 
             let c = a + b;
             let vc = c.encode();
             let zc0 = ::num_bigint::BigInt::from_bytes_le(
                 ::num_bigint::Sign::Plus,
-                &vc[..<$Fp>::ENCODED_LENGTH],
+                &vc[..FP_ENCODED_LENGTH],
             );
             let zc1 = ::num_bigint::BigInt::from_bytes_le(
                 ::num_bigint::Sign::Plus,
-                &vc[<$Fp>::ENCODED_LENGTH..],
+                &vc[FP_ENCODED_LENGTH..],
             );
             let zd0 = (&za0 + &zb0) % &zp;
             let zd1 = (&za1 + &zb1) % &zp;
@@ -264,11 +269,11 @@ macro_rules! define_fp2_tests {
             let vc = c.encode();
             let zc0 = ::num_bigint::BigInt::from_bytes_le(
                 ::num_bigint::Sign::Plus,
-                &vc[..<$Fp>::ENCODED_LENGTH],
+                &vc[..FP_ENCODED_LENGTH],
             );
             let zc1 = ::num_bigint::BigInt::from_bytes_le(
                 ::num_bigint::Sign::Plus,
-                &vc[<$Fp>::ENCODED_LENGTH..],
+                &vc[FP_ENCODED_LENGTH..],
             );
             let zd0 = (&zp + &za0 - &zb0) % &zp;
             let zd1 = (&zp + &za1 - &zb1) % &zp;
@@ -278,11 +283,11 @@ macro_rules! define_fp2_tests {
             let vc = c.encode();
             let zc0 = ::num_bigint::BigInt::from_bytes_le(
                 ::num_bigint::Sign::Plus,
-                &vc[..<$Fp>::ENCODED_LENGTH],
+                &vc[..FP_ENCODED_LENGTH],
             );
             let zc1 = ::num_bigint::BigInt::from_bytes_le(
                 ::num_bigint::Sign::Plus,
-                &vc[<$Fp>::ENCODED_LENGTH..],
+                &vc[FP_ENCODED_LENGTH..],
             );
             let zd0 = (&zp + ((&za0 * &zb0) % &zp) - ((&za1 * &zb1) % &zp)) % &zp;
             let zd1 = ((&za0 * &zb1) + (&za1 * &zb0)) % &zp;
@@ -292,11 +297,11 @@ macro_rules! define_fp2_tests {
             let vc = c.encode();
             let zc0 = ::num_bigint::BigInt::from_bytes_le(
                 ::num_bigint::Sign::Plus,
-                &vc[..<$Fp>::ENCODED_LENGTH],
+                &vc[..FP_ENCODED_LENGTH],
             );
             let zc1 = ::num_bigint::BigInt::from_bytes_le(
                 ::num_bigint::Sign::Plus,
-                &vc[<$Fp>::ENCODED_LENGTH..],
+                &vc[FP_ENCODED_LENGTH..],
             );
             let zd0 = (&zp + ((&za0 * &zb0) % &zp) - ((&za1 * &zb1) % &zp)) % &zp;
             let zd1 = ((&za0 * &zb1) + (&za1 * &zb0)) % &zp;
@@ -306,11 +311,11 @@ macro_rules! define_fp2_tests {
             let vc = c.encode();
             let zc0 = ::num_bigint::BigInt::from_bytes_le(
                 ::num_bigint::Sign::Plus,
-                &vc[..<$Fp>::ENCODED_LENGTH],
+                &vc[..FP_ENCODED_LENGTH],
             );
             let zc1 = ::num_bigint::BigInt::from_bytes_le(
                 ::num_bigint::Sign::Plus,
-                &vc[<$Fp>::ENCODED_LENGTH..],
+                &vc[FP_ENCODED_LENGTH..],
             );
             let zd0 = (&zp + ((&za0 * &za0) % &zp) - ((&za1 * &za1) % &zp)) % &zp;
             let zd1 = ((&za0 * &za1) + (&za1 * &za0)) % &zp;
@@ -324,11 +329,11 @@ macro_rules! define_fp2_tests {
                 let vc = c.encode();
                 let zc0 = ::num_bigint::BigInt::from_bytes_le(
                     ::num_bigint::Sign::Plus,
-                    &vc[..<$Fp>::ENCODED_LENGTH],
+                    &vc[..FP_ENCODED_LENGTH],
                 );
                 let zc1 = ::num_bigint::BigInt::from_bytes_le(
                     ::num_bigint::Sign::Plus,
-                    &vc[<$Fp>::ENCODED_LENGTH..],
+                    &vc[FP_ENCODED_LENGTH..],
                 );
                 assert!(zc0 == za0 && zc1 == za1);
             }
@@ -349,11 +354,11 @@ macro_rules! define_fp2_tests {
                 let vc = c.encode();
                 let zc0 = ::num_bigint::BigInt::from_bytes_le(
                     ::num_bigint::Sign::Plus,
-                    &vc[..<$Fp>::ENCODED_LENGTH],
+                    &vc[..FP_ENCODED_LENGTH],
                 );
                 let zc1 = ::num_bigint::BigInt::from_bytes_le(
                     ::num_bigint::Sign::Plus,
-                    &vc[<$Fp>::ENCODED_LENGTH..],
+                    &vc[FP_ENCODED_LENGTH..],
                 );
                 assert!(zc0.bit(0) == false);
                 if zc0.sign() == ::num_bigint::Sign::NoSign {
@@ -362,8 +367,8 @@ macro_rules! define_fp2_tests {
 
                 // Compute a nqr from a known real part
                 // nqr = nqr_re + i
-                let mut nqr: $Fp2 = <$Fp2>::ZETA;
-                nqr.x0 = <$Fp>::from_u64($nqr);
+                let mut nqr: $Fp2 = <$Fp2>::from_u64($nqr);
+                nqr += <$Fp2>::ZETA;
 
                 if a.is_zero() == 0 {
                     assert!(e.legendre() == 1);
@@ -378,8 +383,10 @@ macro_rules! define_fp2_tests {
                     assert!(e.legendre() == 0);
                 }
 
-                if a0.is_zero() == 0 {
-                    let f = <$Fp2>::new(&a0, &<$Fp>::ZERO);
+                if a.x0.is_zero() == 0 {
+                    let mut f = <$Fp2>::ZERO;
+                    f.x0 = a.x0;
+
                     let (c, r) = f.sqrt();
                     assert!(r == 0xFFFFFFFF);
                     assert!((c * c).equals(&f) == 0xFFFFFFFF);
@@ -399,8 +406,8 @@ macro_rules! define_fp2_tests {
 
         #[test]
         fn fp2_ops() {
-            let mut va = [0u8; (2 * <$Fp>::ENCODED_LENGTH + 64) & !31usize];
-            let mut vb = [0u8; (2 * <$Fp>::ENCODED_LENGTH + 64) & !31usize];
+            let mut va = [0u8; (<$Fp2>::ENCODED_LENGTH + 64) & !31usize];
+            let mut vb = [0u8; (<$Fp2>::ENCODED_LENGTH + 64) & !31usize];
             for i in 0..100 {
                 let mut sh = ::sha2::Sha256::new();
                 for j in 0..(va.len() >> 5) {

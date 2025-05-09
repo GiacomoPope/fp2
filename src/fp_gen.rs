@@ -24,7 +24,7 @@
 macro_rules! define_fp_core {
     (
         typename = $typename:ident,
-        modulus = $MODULUS:expr,
+        modulus = $modulus:expr,
     ) => {
         /// A finite field element. Contents are opaque.
         /// All functions are constant-time.
@@ -57,7 +57,7 @@ macro_rules! define_fp_core {
             // Number of words and bit length of the field characteristic
             pub const N: usize = Self::top_word_index() + 1;
             pub const BIT_LENGTH: usize = Self::mod_bitlen();
-            pub const MODULUS: [u64; Self::N] = $MODULUS;
+            pub const MODULUS: [u64; Self::N] = $modulus;
 
             // Multiplier for decode_reduce().
             const CLEN: usize = 8 * (Self::N - 1);
@@ -1622,13 +1622,13 @@ macro_rules! define_fp_core {
             // (from the parameters).
             const fn top_word_index() -> usize {
                 const fn top_word_index_inner(j: usize) -> usize {
-                    if $MODULUS[j] != 0 {
+                    if $modulus[j] != 0 {
                         j
                     } else {
                         top_word_index_inner(j - 1)
                     }
                 }
-                top_word_index_inner($MODULUS.len() - 1)
+                top_word_index_inner($modulus.len() - 1)
             }
 
             // Get the modulus (normalized).
@@ -1641,7 +1641,7 @@ macro_rules! define_fp_core {
                         d
                     } else {
                         let mut dd = d;
-                        dd[j] = $MODULUS[j];
+                        dd[j] = $modulus[j];
                         make_modulus_inner(dd, j + 1)
                     }
                 }
