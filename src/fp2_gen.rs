@@ -802,6 +802,197 @@ macro_rules! define_fp2_from_type {
                     i += blen;
                 }
             }
+
+            /// Precompute an array of indicies to optimally compute the look-up table for
+            /// discrete log computations for elements of order 2^n.
+            fn precompute_dlp_table_index(n: usize) -> Vec<usize> {
+                // TODO: this may not be the fastest method when this table is pre-computed on
+                // the fly, and this should be experimented with in the future.
+                fn dlp_table_index_inner(dd: &mut Vec<usize>, base: usize, n: usize) {
+                    dd.push(base);
+                    if n == 1 {
+                        return;
+                    }
+                    let n0 = n >> 1;
+                    let n1 = n - n0;
+                    dlp_table_index_inner(dd, base + n1, n0);
+                    dlp_table_index_inner(dd, base + n0, n1);
+                }
+
+                let mut dd = Vec::new();
+                dlp_table_index_inner(&mut dd, 0, n);
+                dd.sort();
+
+                let mut dd2 = Vec::new();
+                for i in 0..dd.len() {
+                    let v = dd[i];
+                    let j = dd2.len();
+                    if j == 0 || v != dd2[j - 1] {
+                        dd2.push(v);
+                    }
+                }
+                dd2
+            }
+
+            /// Precompute two vectors of values used to optimally solve the dlog
+            /// for elements of order 2^n exactly.
+            ///
+            /// Explicitly, this involves computing:
+            /// - A table dlog_table of indicies corresponding to where to split
+            ///   the dlog recursively of type Vec<usize>
+            /// - A table of Fp2 elements `gpp[j] = g^(2^dlog_table[j])` of type
+            ///   of type Vec<Self>
+            ///
+            /// Note that the first value (gpp[0]) is g itself, and the last one must
+            /// be -1 (otherwise, g does not have order exactly 2^e).
+            fn precompute_dlp_tables(self, n: usize) -> (Vec<usize>, Vec<Self>, u32) {
+                // First compute a table of indicies, we will compute and store
+                // the values g^(2^dlog_table[j])
+                let dlog_table = Self::precompute_dlp_table_index(n);
+                let mut gpp = vec![Self::ZERO; dlog_table.len()];
+
+                // Compute g^(2^dlog_table[j])
+                gpp[0] = self;
+                let mut j = 1;
+                let mut g = self;
+                let mut lg = 0;
+                while j < gpp.len() {
+                    g.set_square();
+                    lg += 1;
+                    if lg == dlog_table[j] {
+                        gpp[j] = g;
+                        j += 1;
+                    }
+                }
+
+                // Ensure that that g has indeed order exactly n.
+                let ok = g.equals(&Self::MINUS_ONE);
+
+                (dlog_table, gpp, ok)
+            }
+
+            /// Inner function for solving DLP with order 2^e.
+            /// If gk = -1, then base is self; otherwise, it is gpp[gk]
+            /// (equal to self^(2^dlog_table[gk])). Order of the base is 2^lg.
+            /// Output (of size lg bits) is written in v[], starting at offset
+            /// voff (counted in bits). The target bit values MUST be all zero
+            /// initially in v[] (non-target bits are not modified).
+            /// Returned value is `0xFFFFFFFF` on success, `x00000000` on error.
+            fn solve_dlp_n_inner(
+                self,
+                gpp: &Vec<Self>,
+                gk: usize,
+                x: &Self,
+                v: &mut [u8],
+                voff: usize,
+                e: usize,
+                dlog_table: &Vec<usize>,
+            ) -> u32 {
+                let lg = e - dlog_table[gk];
+
+                // At the deepest recursion level, lg = 1, g = -1,
+                // and x = 1 or -1.
+                if lg == 1 {
+                    let hz = x.x1.is_zero();
+                    let lp = x.x0.equals(&<$Fp>::ONE);
+                    let ln = x.x0.equals(&<$Fp>::MINUS_ONE);
+                    v[voff >> 3] |= ((ln & 1) << (voff & 7)) as u8;
+                    return hz & (lp | ln);
+                }
+
+                // Split lg = lg0 + lg1.
+                // Precomputed indices (in dlog_table) assume that the split is
+                // done such that lg0 = floor(lg/2).
+                let lg0 = lg >> 1;
+                let lg1 = lg - lg0;
+
+                // Solve for v0.
+                //   g' = g^(2^lg1)
+                //   x' = x^(2^lg1)
+                let mut gk0 = gk + 1;
+                while dlog_table[gk0] != e - lg0 {
+                    gk0 += 1;
+                }
+                let mut x0 = *x;
+                for _ in 0..lg1 {
+                    x0.set_square();
+                }
+                let ok0 = self.solve_dlp_n_inner(gpp, gk0, &x0, v, voff, e, dlog_table);
+
+                // Solve for v1.
+                //   g' = g^(2^lg0)
+                //   x' = x/g^v0
+                let mut gk1 = gk + 1;
+                while dlog_table[gk1] != e - lg1 {
+                    gk1 += 1;
+                }
+                let mut x1 = gpp[gk].conjugate();
+                x1.set_pow_ext(v, voff, lg0);
+                x1 *= x;
+                let ok1 = self.solve_dlp_n_inner(gpp, gk1, &x1, v, voff + lg0, e, dlog_table);
+
+                ok0 & ok1
+            }
+
+            /// Find integer v (modulo 2^e) such that x = self^v. If self
+            /// has order exactly 2^e, and there is a solution v, then this
+            /// function returns (v, 0xFFFFFFFF). If self does not have order
+            /// exactly 2^e (including if self^(2^(e-1)) = 1, i.e. the order of
+            /// self is a strict divisor or 2^e), or if there is no solution,
+            /// then this function returns (0, 0).
+            ///
+            /// Optionally include precomputed values from the method precompute_dlp_tables
+            /// otherwise these are computed at runtime.
+            fn solve_dlp_2e(
+                self,
+                x: &Self,
+                e: usize,
+                precomputed_tables: Option<(&Vec<usize>, &Vec<Self>)>,
+            ) -> (Vec<u8>, u32) {
+                // Method: consider g, x and lg such that:
+                //   g has multiplicative order 2^lg
+                //   x = g^v for some v (in the 0 to 2^lg-1 range)
+                // If lg = 1 then g = -1, and x = 0 or -1.
+                //   -> if g != -1, or x is not 0 or -1, then the input is
+                //      erroneous and we can report it
+                // If lg > 1:
+                //   Let lg0 = floor(lg / 2) and lg1 = lg - lg0.
+                //   Let v = v0 + (2^lg0)*v1
+                //   Then:
+                //      x^(2^lg1) = (g^(2^lg1))^v0
+                //   We get v0 with a recursive call on base g^(2^lg1) and
+                //   value x^(2^lg1). Once we have v0:
+                //      x/g^v0 = (g^(2^lg0))^v1
+                //   Another recursive call on base g^(2^lg0) and value
+                //   x/g^v0 yields v1, from which we easily obtain v.
+                //   Note that 1/g = conj(g), since g is a 2n-th root of 1.
+                //
+                // We avoid recomputing the same g^(2^lg) values by keeping
+                // the relevant values in a local array; the important indices
+                // are the ones specified in the dlog_table array.
+
+                // Use the function precompute_dlp_table to precompute the
+                // values g^(2^lg), keeping the relevant values
+                // in the gpp[] array. We have:
+                //    gpp[j] = g^(2^dlog_table[j])
+                // Note that the first value (gpp[0]) is g itself, and the
+                // last one must be -1 (otherwise, g does not have order
+                // exactly n).
+                //
+
+                // If a user has supplied the precomputations, unpack them, otherwise compute
+                // them at runtime.
+                // TODO: I don't like the clone here, but I don't see a way around borrow lifetimes...
+                let (dlog_table, gpp, ok0) = match precomputed_tables {
+                    Some((exps, values)) => (exps.clone(), values.clone(), u32::MAX),
+                    None => self.precompute_dlp_tables(e),
+                };
+
+                // Apply the recursion.
+                let mut v = vec![0u8; (e + 7) >> 3];
+                let ok1 = self.solve_dlp_n_inner(&gpp, 0, x, &mut v, 0, e, &dlog_table);
+                (v, ok0 & ok1)
+            }
         }
 
         // ========================================================================
@@ -1197,6 +1388,19 @@ macro_rules! define_fp2_from_type {
 
             fn batch_invert(xx: &mut [Self]) {
                 Self::batch_invert(xx)
+            }
+
+            fn precompute_dlp_tables(self, n: usize) -> (Vec<usize>, Vec<Self>, u32) {
+                self.precompute_dlp_tables(n)
+            }
+
+            fn solve_dlp_2e(
+                self,
+                x: &Self,
+                e: usize,
+                precomputed_tables: Option<(&Vec<usize>, &Vec<Self>)>,
+            ) -> (Vec<u8>, u32) {
+                self.solve_dlp_2e(x, e, precomputed_tables)
             }
 
             fn set_select(&mut self, a: &Self, b: &Self, ctl: u32) {
