@@ -51,5 +51,5 @@ RUSTFLAGS="-C target-cpu=native" cargo bench
 
 [//]: # (badges)
 
-[build-image]: https://github.com/GiacomoPope/fp2-rs/workflows/Rust/badge.svg
-[build-link]: https://github.com/GiacomoPope/fp2-rs/actions?query=workflow%3ARust
+[build-image]: https://github.com/GiacomoPope/fp2/workflows/Rust/badge.svg
+[build-link]: https://github.com/GiacomoPope/fp2/actions?query=workflow%3ARust
