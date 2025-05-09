@@ -15,7 +15,7 @@ mod tests {
         // Fp139Ext: a finite field element GF(p^2) with modulus x^2 + 1.
         // Contents are opaque, all functions are constant-time.
         // Macro input generated with scripts/gen_fp.sage
-        fp2::define_fp2_from_modulus!(typename = Fp139Ext, modulus = MODULUS,);
+        fp2::define_fp2_from_modulus!(typename = Fp139Ext, base_typename = Fp, modulus = MODULUS,);
         fp2::define_fp2_tests!(Fp139Ext, MODULUS, 10);
     }
 

@@ -1241,16 +1241,18 @@ macro_rules! define_fp2_from_type {
 /// All functions are designed to run in constant time.
 ///
 /// Macro expectations:
-/// - A typename for the finite field generated.
+/// - A typename for the finite field Fp^2 generated.
+/// - A typename for the base finite field Fp.
 /// - An array of `N` words which represent the finite field characteristic
 ///   in base 2^64
 #[macro_export]
 macro_rules! define_fp2_from_modulus {
     (
         typename = $typename:ident,
+        base_typename = $base_typename:ident,
         modulus = $modulus:expr,
     ) => {
-        fp2::define_fp_core!(typename = ExtensionBaseField, modulus = $modulus,);
-        fp2::define_fp2_from_type!(typename = $typename, base_field = ExtensionBaseField,);
+        fp2::define_fp_core!(typename = $base_typename, modulus = $modulus,);
+        fp2::define_fp2_from_type!(typename = $typename, base_field = $base_typename,);
     };
 }
