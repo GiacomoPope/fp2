@@ -3,7 +3,7 @@
 mod tests {
     mod fp139_tests {
         // Field modulus
-        pub static MODULUS: [u64; 3] = [0xFFFFFFFFFFFFFFFF, 0xA873D9ED7EE18BFF, 0x00000000000007E8];
+        static MODULUS: [u64; 3] = [0xFFFFFFFFFFFFFFFF, 0xA873D9ED7EE18BFF, 0x00000000000007E8];
 
         // Fp139: a finite field element GF(p) with p = 3 mod 4.
         // Contents are opaque, all functions are constant-time.
@@ -21,7 +21,7 @@ mod tests {
 
     mod fp251_tests {
         // Field modulus
-        pub static MODULUS: [u64; 4] = [
+        static MODULUS: [u64; 4] = [
             0xFFFFFFFFFFFFFFFF,
             0xFFFFFFFFFFFFFFFF,
             0xFFFFFFFFFFFFFFFF,
@@ -45,7 +45,7 @@ mod tests {
 
     mod fp383_tests {
         // Field modulus
-        pub static MODULUS: [u64; 6] = [
+        static MODULUS: [u64; 6] = [
             0xFFFFFFFFFFFFFFFF,
             0xFFFFFFFFFFFFFFFF,
             0xFFFFFFFFFFFFFFFF,

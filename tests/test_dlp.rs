@@ -1,13 +1,13 @@
 mod dlp_tests {
     use ::sha2::Digest as _;
 
-    pub static MODULUS: [u64; 4] = [
+    static MODULUS: [u64; 4] = [
         0xFFFFFFFFFFFFFFFF,
         0xFFFFFFFFFFFFFFFF,
         0xFFFFFFFFFFFFFFFF,
         0x04FFFFFFFFFFFFFF,
     ];
-    pub static X_STR: &str = "5f33b0e1f6bc51f2699fb8becd1774f318f43a005ae24c723bb9baab3a62ac02b56ce2daf2cc76b04bfbd2703cafc470c14531ad68793d18a764b57a3c171700";
+    static X_STR: &str = "5f33b0e1f6bc51f2699fb8becd1774f318f43a005ae24c723bb9baab3a62ac02b56ce2daf2cc76b04bfbd2703cafc470c14531ad68793d18a764b57a3c171700";
 
     fp2::define_fp2_from_modulus!(typename = FpExt, base_typename = Fp, modulus = MODULUS,);
 

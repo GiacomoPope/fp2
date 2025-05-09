@@ -107,20 +107,21 @@ mod bench_fp_251_ext {
     // Contents are opaque, all functions are constant-time.
     // Macro input generated with scripts/gen_fp.sage
     // p = 5*2^248 - 1
-    fp2::define_fp_core!(
-        typename = Fp251,
-        modulus = [
-            0xFFFFFFFFFFFFFFFF_u64,
-            0xFFFFFFFFFFFFFFFF_u64,
-            0xFFFFFFFFFFFFFFFF_u64,
-            0x04FFFFFFFFFFFFFF_u64
-        ],
-    );
+    static MODULUS: [u64; 4] = [
+        0xFFFFFFFFFFFFFFFF_u64,
+        0xFFFFFFFFFFFFFFFF_u64,
+        0xFFFFFFFFFFFFFFFF_u64,
+        0x04FFFFFFFFFFFFFF_u64,
+    ];
 
     // Fp251Ext: a finite field element GF(p^2) with modulus x^2 + 1.
     // Contents are opaque, all functions are constant-time.
     // Macro input generated with scripts/gen_fp.sage
-    fp2::define_fp2_core!(typename = Fp251Ext, base_field = Fp251,);
+    fp2::define_fp2_from_modulus!(
+        typename = Fp251Ext,
+        base_typename = Fp251,
+        modulus = MODULUS,
+    );
 
     define_fp2_benchmarks!(Fp251Ext);
     criterion_main!(fp2_benchmarks);
