@@ -1221,6 +1221,9 @@ macro_rules! define_fp2_from_type {
             fn decode(buf: &[u8]) -> (Self, u32) {
                 Self::decode(buf)
             }
+            fn decode_reduce(buf: &[u8]) -> Self {
+                Self::decode_reduce(buf)
+            }
 
             fn set_rand<R: ::rand_core::CryptoRng + ::rand_core::RngCore>(&mut self, rng: &mut R) {
                 self.set_rand(rng)

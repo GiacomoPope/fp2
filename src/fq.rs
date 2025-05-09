@@ -9,6 +9,7 @@
 //! done in the future
 
 use core::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
+use std::fmt::Display;
 
 /// A trait for finite field arithmetic for the field Fp^2 with modulus x^2 + 1.
 pub trait Fq:
@@ -22,6 +23,7 @@ pub trait Fq:
     + MulAssign
     + Div<Output = Self>
     + DivAssign
+    + Display
 {
     /// The length of the encoded representation of the finite field element.
     const ENCODED_LENGTH: usize;
@@ -229,6 +231,15 @@ pub trait Fq:
     /// element (`Self::ENCODED_LENGTH`), or if the source encodes
     /// an integer which is not in the `[0..(p-1)]` range.
     fn decode(buf: &[u8]) -> (Self, u32);
+
+    /// Decode the provided bytes into a field element. The source slice
+    /// can have arbitrary length; the bytes are interpreted with the
+    /// unsigned little-endian convention (no sign bit), with the first half
+    /// of the bytes corresponding to x0 and the latter half to x1. For each
+    /// resulting integer, the result is reduced modulo the field modulus p.
+    /// By definition, this function does not enforce canonicality of the source
+    /// value.
+    fn decode_reduce(buf: &[u8]) -> Self;
 
     /// Set this structure to a random field element (indistinguishable
     /// from uniform generation).
