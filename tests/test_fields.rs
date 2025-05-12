@@ -1,6 +1,25 @@
 #[cfg(feature = "test_macros")]
 #[cfg(test)]
 mod tests {
+    // Random prime with no nice properties for Montgomery friendliness
+    mod fp_ugly_tests {
+        // Field modulus
+        static MODULUS: [u64; 2] = [0x5A0E852097C48043, 0x7EA2A3A646684E9D];
+
+        // Fp139: a finite field element GF(p) with p = 3 mod 4.
+        // Contents are opaque, all functions are constant-time.
+        // Macro input generated with scripts/gen_fp.sage
+        // p = 2^127 - 1
+        fp2::define_fp_core!(typename = FpUgly, modulus = MODULUS,);
+        fp2::define_fp_tests!(FpUgly);
+
+        // FpUglyExt: a finite field element GF(p^2) with modulus x^2 + 1.
+        // Contents are opaque, all functions are constant-time.
+        // Macro input generated with scripts/gen_fp.sage
+        fp2::define_fp2_from_modulus!(typename = FpUglyExt, base_typename = Fp, modulus = MODULUS,);
+        fp2::define_fp2_tests!(FpUglyExt, MODULUS, 1);
+    }
+
     mod fp127_tests {
         // Field modulus
         static MODULUS: [u64; 2] = [0xFFFFFFFFFFFFFFFF, 0x7FFFFFFFFFFFFFFF];

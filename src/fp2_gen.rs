@@ -479,7 +479,8 @@ macro_rules! define_fp2_from_type {
                 //
                 // We can compute n = y0^2 + y1^2 with only a fourth-root
                 // in Fp: n = (x0^2 + x1^2)^((p+1) / 8)
-                // where we use p = 7 mod 8
+                // where we use p = 7 mod 8, otherwise we do two sqrt which
+                // will be slower (2x the cost).
                 //
                 // Combining the expanded result and the norm equation
                 // gives a quartic polynomial in y0 which only appears

@@ -986,15 +986,25 @@ macro_rules! define_fp_core {
                 (x, r)
             }
 
-            /// Set this value to its fourth root. Returned value is 0xFFFFFFFF if
-            /// the operation succeeded (value was indeed some element to the power of four), or
+            /// Set this value to its square root. Returned value is 0xFFFFFFFF if
+            /// the operation succeeded (value was indeed a quadratic residue), or
             /// 0x00000000 otherwise. On success, the chosen root is the one whose
             /// least significant bit (as an integer in [0..p-1]) is zero. On
             /// failure, this value is set to 0.
+            ///
+            /// When p = 7 mod 8 we can compute x^((p+1)/8), but for all other cases
+            /// we fall back to the 2x slower method of computing x^((p+1)/4) twice.
             pub fn set_fourth_root(&mut self) -> u32 {
-                // Compute x^((p+1)/4)
                 let x = *self;
-                self.set_modpow_pubexp(&Self::FOURTH_ROOT_EXP);
+
+                if Self::MODULUS[0] & 7 == 7 {
+                    // Compute x^((p+1)/8)
+                    self.set_modpow_pubexp(&Self::FOURTH_ROOT_EXP);
+                } else {
+                    // Fall back to the much slower, general case of two sqrt.
+                    self.set_modpow_pubexp(&Self::SQRT_EXP);
+                    self.set_modpow_pubexp(&Self::SQRT_EXP);
+                }
 
                 // Check whether the square of the result equals the input and zeroize
                 // on failure
@@ -1462,8 +1472,6 @@ macro_rules! define_fp_core {
                     (u.0[i], borrow) =
                         $crate::utils64::subborrow_u64(u.0[i], Self::MODULUS[i], borrow);
                 }
-
-                // let mask = (borrow as u64).wrapping_neg();
                 let mask = (hi_limb).wrapping_sub(borrow as u64);
                 borrow = 0;
                 for i in 0..Self::N {
