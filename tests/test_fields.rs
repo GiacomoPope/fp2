@@ -1,22 +1,22 @@
 #[cfg(feature = "test_macros")]
 #[cfg(test)]
 mod tests {
-    mod fp139_tests {
+    mod fp127_tests {
         // Field modulus
-        static MODULUS: [u64; 3] = [0xFFFFFFFFFFFFFFFF, 0xA873D9ED7EE18BFF, 0x00000000000007E8];
+        static MODULUS: [u64; 2] = [0xFFFFFFFFFFFFFFFF, 0x7FFFFFFFFFFFFFFF];
 
         // Fp139: a finite field element GF(p) with p = 3 mod 4.
         // Contents are opaque, all functions are constant-time.
         // Macro input generated with scripts/gen_fp.sage
-        // p = 2^74 * 3^41 - 1
-        fp2::define_fp_core!(typename = Fp139, modulus = MODULUS,);
-        fp2::define_fp_tests!(Fp139);
+        // p = 2^127 - 1
+        fp2::define_fp_core!(typename = Fp127, modulus = MODULUS,);
+        fp2::define_fp_tests!(Fp127);
 
-        // Fp139Ext: a finite field element GF(p^2) with modulus x^2 + 1.
+        // Fp127Ext: a finite field element GF(p^2) with modulus x^2 + 1.
         // Contents are opaque, all functions are constant-time.
         // Macro input generated with scripts/gen_fp.sage
-        fp2::define_fp2_from_modulus!(typename = Fp139Ext, base_typename = Fp, modulus = MODULUS,);
-        fp2::define_fp2_tests!(Fp139Ext, MODULUS, 10);
+        fp2::define_fp2_from_modulus!(typename = Fp127Ext, base_typename = Fp, modulus = MODULUS,);
+        fp2::define_fp2_tests!(Fp127Ext, MODULUS, 2);
     }
 
     mod fp251_tests {

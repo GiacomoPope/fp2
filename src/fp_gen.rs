@@ -1404,71 +1404,67 @@ macro_rules! define_fp_core {
             /// for use in Fp2 multiplications
             #[inline(always)]
             pub fn sum_of_products(a1: &Self, b1: &Self, a2: &Self, b2: &Self) -> Self {
-                // TODO: This function will not work for all moduli, as I am
-                // using the shape of the prime to skip a few add and carries. I
-                // should go through and generalise this, but when I tried I had some
-                // bugs I couldn't squash!
-
-                // We return the Fp element u
+                // We return the Fp element u, initalised to zero
                 let mut u = Self::ZERO;
 
-                // Initalise some additional values, not sure if using a mut
-                // and updating or defining a let (a, b) ... every time is faster!
-                let mut carry: u64;
-                let mut borrow: u8;
-                let mut extra_limb: u64;
+                // Initalise some additional values to track carries.
+                let mut carry_limb: u64 = 0u64;
+                let mut hi_limb: u64 = 0u64;
+                let mut hi_carry: u8 = 0u8;
 
                 // Montgomery multiplcation is interleaved, so we loop through every limb
                 // multiplying by the bottom word of on element through every word of the
                 // other and then perform a single Montgomery reducton
                 for j in 0..Self::N {
-                    // For each loop set the extra limb back to zero, for the general case,
-                    // I think this value should be updated from the carry of the previous
-                    // loop!
-                    extra_limb = 0;
-
                     // Compute u = u + a1j * b1
                     let a1j = a1.0[j];
-                    (u.0[0], carry) = $crate::utils64::umull_add(a1j, b1.0[0], u.0[0]);
+                    (u.0[0], carry_limb) = $crate::utils64::umull_add(a1j, b1.0[0], u.0[0]);
                     for k in 1..Self::N {
-                        (u.0[k], carry) = $crate::utils64::umull_add2(a1j, b1.0[k], u.0[k], carry);
+                        (u.0[k], carry_limb) =
+                            $crate::utils64::umull_add2(a1j, b1.0[k], u.0[k], carry_limb);
                     }
-                    extra_limb = extra_limb.wrapping_add(carry);
+                    (hi_limb, hi_carry) =
+                        $crate::utils64::addcarry_u64(hi_limb, carry_limb, hi_carry);
 
                     // Compute u = u + a2j * b2
                     let a2j = a2.0[j];
-                    (u.0[0], carry) = $crate::utils64::umull_add(a2j, b2.0[0], u.0[0]);
+                    (u.0[0], carry_limb) = $crate::utils64::umull_add(a2j, b2.0[0], u.0[0]);
                     for k in 1..Self::N {
-                        (u.0[k], carry) = $crate::utils64::umull_add2(a2j, b2.0[k], u.0[k], carry);
+                        (u.0[k], carry_limb) =
+                            $crate::utils64::umull_add2(a2j, b2.0[k], u.0[k], carry_limb);
                     }
-                    extra_limb = extra_limb.wrapping_add(carry);
+                    (hi_limb, hi_carry) =
+                        $crate::utils64::addcarry_u64(hi_limb, carry_limb, hi_carry);
 
                     // Perform a single step of the Montgomery reduction process by computing
                     // q = u0 * (-1/p) mod 2^64
                     // Then computing
                     // u = (u + q * p) / 2^64
-                    // TODO: the shape of the prime means we could probably set q = u0
-                    // and then reduce with (p+1) rather than p. This would save one
-                    // u64 multiplication for each loop, but stops this function from
-                    // working more generally.
                     let q = u.0[0].wrapping_mul(Self::P0I);
-                    (_, carry) = $crate::utils64::umull_add(q, Self::MODULUS[0], u.0[0]);
+                    (_, carry_limb) = $crate::utils64::umull_add(q, Self::MODULUS[0], u.0[0]);
                     for k in 1..Self::N {
-                        (u.0[k - 1], carry) =
-                            $crate::utils64::umull_add2(q, Self::MODULUS[k], u.0[k], carry);
+                        (u.0[k - 1], carry_limb) =
+                            $crate::utils64::umull_add2(q, Self::MODULUS[k], u.0[k], carry_limb);
                     }
-                    u.0[Self::N - 1] = extra_limb.wrapping_add(carry);
+                    (u.0[Self::N - 1], hi_carry) =
+                        $crate::utils64::addcarry_u64(hi_limb, carry_limb, hi_carry);
+
+                    // Shift the high carry into the high limb for the next iteration.
+                    hi_limb = (hi_carry as u64);
+                    hi_carry = 0;
                 }
 
                 // The result of the above is a value within [0, 2p)
                 // We subtract the modulus to obtain something in the range [-p, 0) and
                 // conditionally add the modulus back if the previous result was negative
-                borrow = 0;
+                let mut borrow = 0;
                 for i in 0..Self::N {
                     (u.0[i], borrow) =
                         $crate::utils64::subborrow_u64(u.0[i], Self::MODULUS[i], borrow);
                 }
-                let mask = (borrow as u64).wrapping_neg();
+
+                // let mask = (borrow as u64).wrapping_neg();
+                let mask = (hi_limb).wrapping_sub(borrow as u64);
                 borrow = 0;
                 for i in 0..Self::N {
                     (u.0[i], borrow) =
@@ -1484,75 +1480,15 @@ macro_rules! define_fp_core {
             /// for use in Fp2 multiplications
             #[inline(always)]
             pub fn difference_of_products(a1: &Self, b1: &Self, a2: &Self, b2: &Self) -> Self {
-                let mut u = Self::ZERO;
-                let mut carry: u64;
-                let mut borrow: u8 = 0;
-                let mut extra_limb: u64;
-
                 // Compute p - b2
-                // Is this the fastest way to do this or could I interleave it into
-                // the below loop?
+                let mut borrow = 0;
                 let mut b2_minus = *b2;
                 for i in 0..Self::N {
                     (b2_minus.0[i], borrow) =
                         $crate::utils64::subborrow_u64(Self::MODULUS[i], b2_minus.0[i], borrow);
                 }
-
-                // Montgomery multiplcation is interleaved, so we loop through every limb
-                // multiplying by the bottom word of on element through every word of the
-                // other and then perform a single Montgomery reducton
-                for j in 0..Self::N {
-                    // For each loop set the extra limb back to zero, for the general case,
-                    // I think this value should be updated from the carry of the previous
-                    // loop!
-                    extra_limb = 0;
-
-                    // Compute u = u + a1j * b1
-                    let a1j = a1.0[j];
-                    (u.0[0], carry) = $crate::utils64::umull_add(a1j, b1.0[0], u.0[0]);
-                    for k in 1..Self::N {
-                        (u.0[k], carry) = $crate::utils64::umull_add2(a1j, b1.0[k], u.0[k], carry);
-                    }
-                    extra_limb = extra_limb.wrapping_add(carry);
-
-                    // Compute u = u + a2j * b2_minus = u - a2j * b2
-                    let a2j = a2.0[j];
-                    (u.0[0], carry) = $crate::utils64::umull_add(a2j, b2_minus.0[0], u.0[0]);
-                    for k in 1..Self::N {
-                        (u.0[k], carry) =
-                            $crate::utils64::umull_add2(a2j, b2_minus.0[k], u.0[k], carry);
-                    }
-                    extra_limb = extra_limb.wrapping_add(carry);
-
-                    // Perform a single step of the Montgomery reduction process by computing
-                    // q = u0 * (-1/p) mod 2^64
-                    // Then computing
-                    // u = (u + q * p) / 2^64
-                    let q = u.0[0].wrapping_mul(Self::P0I);
-                    (_, carry) = $crate::utils64::umull_add(q, Self::MODULUS[0], u.0[0]);
-                    for k in 1..Self::N {
-                        (u.0[k - 1], carry) =
-                            $crate::utils64::umull_add2(q, Self::MODULUS[k], u.0[k], carry);
-                    }
-                    u.0[Self::N - 1] = extra_limb.wrapping_add(carry);
-                }
-
-                // The result of the above is a value within [0, 2p)
-                // We subtract the modulus to obtain something in the range [-p, 0) and
-                // conditionally add the modulus back if the previous result was negative
-                let mut borrow = 0;
-                for i in 0..Self::N {
-                    (u.0[i], borrow) =
-                        $crate::utils64::subborrow_u64(u.0[i], Self::MODULUS[i], borrow);
-                }
-                let mask = (borrow as u64).wrapping_neg();
-                borrow = 0;
-                for i in 0..Self::N {
-                    (u.0[i], borrow) =
-                        $crate::utils64::addcarry_u64(u.0[i], mask & Self::MODULUS[i], borrow);
-                }
-
-                u
+                // Regular sum of products (could the above be optimised into the main loop?)
+                Self::sum_of_products(a1, b1, a2, &b2_minus)
             }
 
             /*
