@@ -101,10 +101,10 @@ macro_rules! define_fp_core {
             /// Create an element by converting the provided integer.
             #[inline(always)]
             pub fn from_i32(x: i32) -> Self {
-                let sx = (x >> 31) as u32;
-                let ax = ((x as u32) ^ sx).wrapping_sub(sx);
-                let mut r = Self::from_u64(ax as u64);
-                r.set_condneg(sx);
+                // For the i32 type, we can avoid the mul by R2 in from_u64
+                // by instead using the cheaper set_mul_small with the ONE constant.
+                let mut r = Self::ONE;
+                r.set_mul_small(x);
                 r
             }
 

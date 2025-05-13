@@ -75,7 +75,7 @@ macro_rules! define_fp2_from_type {
 
             /// Create an element by converting the provided integer.
             #[inline(always)]
-            pub fn from_i32(x: i32) -> Self {
+            fn from_i32(x: i32) -> Self {
                 let mut r = Self::ZERO;
                 r.x0 = <$Fp>::from_i32(x);
                 r
@@ -83,7 +83,7 @@ macro_rules! define_fp2_from_type {
 
             /// Create an element by converting the provided integer.
             #[inline(always)]
-            pub fn from_i64(x: i64) -> Self {
+            fn from_i64(x: i64) -> Self {
                 let mut r = Self::ZERO;
                 r.x0 = <$Fp>::from_i64(x);
                 r
@@ -91,16 +91,64 @@ macro_rules! define_fp2_from_type {
 
             /// Create an element by converting the provided integer.
             #[inline(always)]
-            pub fn from_u32(x: u32) -> Self {
+            fn from_u32(x: u32) -> Self {
                 Self::from_u64(x as u64)
             }
 
             /// Create an element by converting the provided integer.
             #[inline(always)]
-            pub fn from_u64(x: u64) -> Self {
+            fn from_u64(x: u64) -> Self {
                 let mut r = Self::ZERO;
                 r.x0 = <$Fp>::from_u64(x);
                 r
+            }
+
+            /// Create an element [x0, x1] from a pair of integers
+            #[inline(always)]
+            fn from_u32_pair(x0: u32, x1: u32) -> Self {
+                let mut r = Self::ZERO;
+                r.x0 = <$Fp>::from_u32(x0);
+                r.x1 = <$Fp>::from_u32(x1);
+                r
+            }
+
+            /// Create an element [x0, x1] from a pair of integers
+            #[inline(always)]
+            fn from_i32_pair(x0: i32, x1: i32) -> Self {
+                let mut r = Self::ZERO;
+                r.x0 = <$Fp>::from_i32(x0);
+                r.x1 = <$Fp>::from_i32(x1);
+                r
+            }
+
+            /// Create an element [x0, x1] from a pair of integers
+            #[inline(always)]
+            fn from_u64_pair(x0: u64, x1: u64) -> Self {
+                let mut r = Self::ZERO;
+                r.x0 = <$Fp>::from_u64(x0);
+                r.x1 = <$Fp>::from_u64(x1);
+                r
+            }
+
+            /// Create an element [x0, x1] from a pair of integers
+            #[inline(always)]
+            fn from_i64_pair(x0: i64, x1: i64) -> Self {
+                let mut r = Self::ZERO;
+                r.x0 = <$Fp>::from_i64(x0);
+                r.x1 = <$Fp>::from_i64(x1);
+                r
+            }
+
+            /// Set the real part of the value to a small integer value
+            #[inline(always)]
+            fn set_x0_small(&mut self, x: i32) {
+                self.x0 = <$Fp>::from_i32(x);
+            }
+
+            /// Set the real part of the value to a small integer value
+            #[inline(always)]
+            fn set_x1_small(&mut self, x: i32) {
+                self.x1 = <$Fp>::from_i32(x);
             }
 
             #[inline]
@@ -1287,6 +1335,57 @@ macro_rules! define_fp2_from_type {
             //
             // Rust friends:
             // I am very happy to have feedback on ways to refactor this!
+
+            /// Return the value x + i*0 for a given integer x of type `i32`.
+            fn from_i32(x: i32) -> Self {
+                Self::from_i32(x)
+            }
+
+            /// Return the value x + i*0 for a given integer x of type `u32`.
+            fn from_u32(x: u32) -> Self {
+                Self::from_u32(x)
+            }
+
+            /// Return the value x + i*0 for a given integer x of type `i64`.
+            fn from_i64(x: i64) -> Self {
+                Self::from_i64(x)
+            }
+
+            /// Return the value x + i*0 for a given integer x of type `u64`.
+            fn from_u64(x: u64) -> Self {
+                Self::from_u64(x)
+            }
+
+            /// Return the value x0 + i*x1 for a given two integers of type `i32`.
+            fn from_i32_pair(x0: i32, x1: i32) -> Self {
+                Self::from_i32_pair(x0, x1)
+            }
+
+            /// Return the value x0 + i*x1 for a given two integers of type `u32`.
+            fn from_u32_pair(x0: u32, x1: u32) -> Self {
+                Self::from_u32_pair(x0, x1)
+            }
+
+            /// Return the value x0 + i*x1 for a given two integers of type `i64`.
+            fn from_i64_pair(x0: i64, x1: i64) -> Self {
+                Self::from_i64_pair(x0, x1)
+            }
+
+            /// Return the value x0 + i*x1 for a given two integers of type `u64`.
+            fn from_u64_pair(x0: u64, x1: u64) -> Self {
+                Self::from_u64_pair(x0, x1)
+            }
+
+            /// Set the "real" component of self to an integer of type `i32` in place.
+            fn set_x0_small(&mut self, x: i32) {
+                self.set_x0_small(x)
+            }
+
+            /// Set the "imaginary" component of self to an integer of type `i32` in place.
+            fn set_x1_small(&mut self, x: i32) {
+                self.set_x1_small(x)
+            }
+
             fn is_zero(self) -> u32 {
                 self.is_zero()
             }

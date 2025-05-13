@@ -54,6 +54,36 @@ pub trait Fq:
     /// i^2 = -1, a fourth-root of unity.
     const MINUS_ZETA: Self;
 
+    /// Return the value x + i*0 for a given integer x of type `i32`.
+    fn from_i32(x: i32) -> Self;
+
+    /// Return the value x + i*0 for a given integer x of type `u32`.
+    fn from_u32(x: u32) -> Self;
+
+    /// Return the value x + i*0 for a given integer x of type `i64`.
+    fn from_i64(x: i64) -> Self;
+
+    /// Return the value x + i*0 for a given integer x of type `u64`.
+    fn from_u64(x: u64) -> Self;
+
+    /// Return the value x0 + i*x1 for a given two integers of type `i32`.
+    fn from_i32_pair(x0: i32, x1: i32) -> Self;
+
+    /// Return the value x0 + i*x1 for a given two integers of type `u32`.
+    fn from_u32_pair(x0: u32, x1: u32) -> Self;
+
+    /// Return the value x0 + i*x1 for a given two integers of type `i64`.
+    fn from_i64_pair(x0: i64, x1: i64) -> Self;
+
+    /// Return the value x0 + i*x1 for a given two integers of type `u64`.
+    fn from_u64_pair(x0: u64, x1: u64) -> Self;
+
+    /// Set the "real" component of self to an integer of type `i32` in place.
+    fn set_x0_small(&mut self, x: i32);
+
+    /// Set the "imaginary" component of self to an integer of type `i32` in place.
+    fn set_x1_small(&mut self, x: i32);
+
     /// Return `0xFFFFFFFF` if this value is zero, or `0x00000000` otherwise.
     fn is_zero(self) -> u32;
 
