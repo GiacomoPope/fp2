@@ -994,6 +994,15 @@ macro_rules! define_fp2_from_type {
                 let ok1 = self.solve_dlp_n_inner(&gpp, 0, x, &mut v, 0, e, &dlog_table);
                 (v, ok0 & ok1)
             }
+
+            /// Decode an element from bytes, no check is made that the input
+            /// value is reduced except that the buffer is of the excpected
+            /// length of `Self::ENCODED_LENGTH` (handled within the Fp decode).
+            pub const fn const_decode_no_check(x0_buf: &[u8], x1_buf: &[u8]) -> Self {
+                let x0 = <$Fp>::const_decode_no_check(&x0_buf);
+                let x1 = <$Fp>::const_decode_no_check(&x1_buf);
+                Self { x0, x1 }
+            }
         }
 
         // ========================================================================

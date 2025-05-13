@@ -1826,6 +1826,43 @@ macro_rules! define_fp_core {
                 }
                 const_fourth_root_exp_inner([0u64; Self::N], 1, 0, 0)
             }
+
+            /// Decode an element from bytes, no check is made that the input
+            /// value is reduced except that the buffer is of the excpected
+            /// length of `Self::ENCODED_LENGTH`.
+            pub const fn const_decode_no_check(buf: &[u8]) -> Self {
+                let mut r = Self::ZERO;
+                if buf.len() != Self::ENCODED_LENGTH {
+                    return r;
+                }
+
+                // Fill the first N-1 elements
+                let mut i = 0;
+                while i < Self::N - 1 {
+                    r.0[i] = u64::from_le_bytes([
+                        buf[i * 8],
+                        buf[i * 8 + 1],
+                        buf[i * 8 + 2],
+                        buf[i * 8 + 3],
+                        buf[i * 8 + 4],
+                        buf[i * 8 + 5],
+                        buf[i * 8 + 6],
+                        buf[i * 8 + 7],
+                    ]);
+                    i += 1;
+                }
+
+                // Fill the last element
+                let mut w = 0u64;
+                let mut j = 0;
+                while j < Self::ENCODED_LENGTH - (Self::N - 1) * 8 {
+                    w |= (buf[(Self::N - 1) * 8 + j] as u64) << (8 * j);
+                    j += 1;
+                }
+                r.0[Self::N - 1] = w;
+
+                Self::const_mmul(r, Self::R2)
+            }
         }
 
         /*

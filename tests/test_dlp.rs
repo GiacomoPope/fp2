@@ -7,15 +7,22 @@ mod dlp_tests {
         0xFFFFFFFFFFFFFFFF,
         0x04FFFFFFFFFFFFFF,
     ];
-    static X_STR: &str = "5f33b0e1f6bc51f2699fb8becd1774f318f43a005ae24c723bb9baab3a62ac02b56ce2daf2cc76b04bfbd2703cafc470c14531ad68793d18a764b57a3c171700";
-
     fp2::define_fp2_from_modulus!(typename = FpExt, base_typename = Fp, modulus = MODULUS,);
+
+    static X0_BYTES: [u8; 32] = [
+        95, 51, 176, 225, 246, 188, 81, 242, 105, 159, 184, 190, 205, 23, 116, 243, 24, 244, 58, 0,
+        90, 226, 76, 114, 59, 185, 186, 171, 58, 98, 172, 2,
+    ];
+    static X1_BYTES: [u8; 32] = [
+        181, 108, 226, 218, 242, 204, 118, 176, 75, 251, 210, 112, 60, 175, 196, 112, 193, 69, 49,
+        173, 104, 121, 61, 24, 167, 100, 181, 122, 60, 23, 23, 0,
+    ];
+    static X: FpExt = FpExt::const_decode_no_check(&X0_BYTES, &X1_BYTES);
 
     #[test]
     fn test_element_order() {
         // ensure x is an element of order 2^248
-        let (mut x, r) = FpExt::decode(&hex::decode(X_STR).unwrap());
-        assert!(r == u32::MAX);
+        let mut x = X;
 
         // Compute x^(2^127) this should be equal to -1
         for _ in 0..247 {
@@ -42,9 +49,7 @@ mod dlp_tests {
     #[test]
     fn test_dlp_n() {
         // x is a precomputed element of order 2^248
-        let (x, r) = FpExt::decode(&hex::decode(X_STR).unwrap());
-        assert!(r == u32::MAX);
-
+        let x = X;
         let mut y = FpExt::ONE;
 
         // Run the test 100 times
@@ -61,9 +66,7 @@ mod dlp_tests {
     #[test]
     fn test_dlp_n_with_table() {
         // x is a precomputed element of order 2^248
-        let (x, r) = FpExt::decode(&hex::decode(X_STR).unwrap());
-        assert!(r == u32::MAX);
-
+        let x = X;
         let mut y = FpExt::ONE;
 
         let (dlp_table, ele_table, check) = x.precompute_dlp_tables(248);
