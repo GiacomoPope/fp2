@@ -1511,6 +1511,14 @@ macro_rules! define_fp2_from_type {
                 self.legendre()
             }
 
+            fn is_square(self) -> u32 {
+                self.is_square()
+            }
+
+            fn is_square_base_field(self) -> u32 {
+                self.is_square_base_field()
+            }
+
             fn batch_invert(xx: &mut [Self]) {
                 Self::batch_invert(xx)
             }

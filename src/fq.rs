@@ -221,6 +221,14 @@ pub trait Fq:
     /// - -1   if this value is not a quadratic residue
     fn legendre(self) -> i32;
 
+    /// Return `0xFFFFFFFF` when this value is a square in GF(p^2) and
+    /// `0x00000000` otherwise.
+    fn is_square(self) -> u32;
+
+    /// Return `0xFFFFFFFF` when this value is a square in GF(p) and
+    /// `0x00000000` otherwise.
+    fn is_square_base_field(self) -> u32;
+
     /// Precompute two vectors of values used to optimally solve the dlog
     /// for elements of order 2^n exactly.
     ///
