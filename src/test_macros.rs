@@ -134,10 +134,13 @@ macro_rules! define_fp_tests {
             let c = a.square();
             if c.is_zero() != 0 {
                 assert!(c.legendre() == 0);
+                assert!(c.is_square() == u32::MAX);
             } else {
                 assert!(c.legendre() == 1);
+                assert!(c.is_square() == u32::MAX);
                 let c = -c;
                 assert!(c.legendre() == -1);
+                assert!(c.is_square() == 0);
             }
 
             // Different sums of products
@@ -372,8 +375,11 @@ macro_rules! define_fp2_tests {
 
                 if a.is_zero() == 0 {
                     assert!(e.legendre() == 1);
+                    assert!(e.is_square() == u32::MAX);
                     let e = a * a * nqr;
                     assert!(e.legendre() == -1);
+                    assert!(e.is_square() == 0);
+
                     let (c, r) = e.sqrt();
                     assert!(r == 0);
                     assert!(c.is_zero() == 0xFFFFFFFF);
@@ -381,6 +387,7 @@ macro_rules! define_fp2_tests {
                     assert!(r == 0);
                 } else {
                     assert!(e.legendre() == 0);
+                    assert!(e.is_square() == u32::MAX);
                 }
 
                 if a.x0.is_zero() == 0 {
@@ -394,6 +401,11 @@ macro_rules! define_fp2_tests {
                     let (c, r) = g.sqrt();
                     assert!(r == 0xFFFFFFFF);
                     assert!((c * c).equals(&g) == 0xFFFFFFFF);
+
+                    f.x0 = a.x0.square();
+                    assert!(f.is_square_base_field() == u32::MAX);
+                    f.x0.set_neg();
+                    assert!(f.is_square_base_field() == 0);
                 }
 
                 let e = a * a * a * a;

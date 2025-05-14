@@ -417,6 +417,22 @@ macro_rules! define_fp2_from_type {
                 (self.x0.square() + self.x1.square()).legendre()
             }
 
+            /// Return `0xFFFFFFFF` when this value is a square in GF(p^2) and
+            /// `0x00000000` otherwise.
+            #[inline]
+            fn is_square(self) -> u32 {
+                !((self.legendre() >> 1) as u32)
+            }
+
+            /// Return `0xFFFFFFFF` when this value is a square in GF(p) and
+            /// `0x00000000` otherwise.
+            #[inline]
+            fn is_square_base_field(self) -> u32 {
+                // x = x0 + i*x1 is a square in GF(p) if and only if
+                // x0 is a square and x1 is zero;
+                self.x0.is_square() & self.x1.is_zero()
+            }
+
             /// Set this value to its square root. Returned value is 0xFFFFFFFF if
             /// the operation succeeded (value was indeed a quadratic residue), or
             /// 0x00000000 otherwise. On success, the chosen root is the one whose

@@ -1275,6 +1275,13 @@ macro_rules! define_fp_core {
                 (r & !(self.is_zero() as u32)) as i32
             }
 
+            /// Return `0xFFFFFFFF` when this value is a square in GF(p^2) and
+            /// `0x00000000` otherwise.
+            #[inline]
+            fn is_square(self) -> u32 {
+                !((self.legendre() >> 1) as u32)
+            }
+
             /// Encode this value into bytes. Encoding uses little-endian, has
             /// a fixed size (for a given field), and is canonical.
             #[inline(always)]
