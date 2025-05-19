@@ -157,7 +157,7 @@ macro_rules! define_fp2_from_type {
             }
 
             #[inline]
-            fn equals(&self, rhs: &Self) -> u32 {
+            fn equals(self, rhs: &Self) -> u32 {
                 self.x0.equals(&rhs.x0) & self.x1.equals(&rhs.x1)
             }
 
@@ -185,7 +185,7 @@ macro_rules! define_fp2_from_type {
             }
 
             #[inline]
-            fn conjugate(&self) -> Self {
+            fn conjugate(self) -> Self {
                 Self {
                     x0: self.x0,
                     x1: -&self.x1,
