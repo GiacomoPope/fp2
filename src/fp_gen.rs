@@ -135,7 +135,7 @@ macro_rules! define_fp_core {
 
             /// Return 0xFFFFFFFF if this value is zero, or 0x00000000 otherwise.
             #[inline]
-            pub fn is_zero(self) -> u32 {
+            pub fn is_zero(&self) -> u32 {
                 let mut x = self.0[0];
                 for i in 1..Self::N {
                     x |= self.0[i];
@@ -146,7 +146,7 @@ macro_rules! define_fp_core {
             /// Return 0xFFFFFFFF if this value is equal to rhs, or 0x00000000
             /// otherwise.
             #[inline(always)]
-            pub fn equals(self, rhs: &Self) -> u32 {
+            pub fn equals(&self, rhs: &Self) -> u32 {
                 let mut r = 0u64;
                 for i in 0..Self::N {
                     r |= self.0[i] ^ rhs.0[i];
@@ -944,9 +944,9 @@ macro_rules! define_fp_core {
                 self.set_div(&r);
             }
 
-            pub fn invert(self) -> Self {
+            pub fn invert(&self) -> Self {
                 let mut r = Self::ONE;
-                r.set_div(&self);
+                r.set_div(self);
                 r
             }
 
@@ -1278,7 +1278,7 @@ macro_rules! define_fp_core {
             /// Return `0xFFFFFFFF` when this value is a square in GF(p^2) and
             /// `0x00000000` otherwise.
             #[inline]
-            fn is_square(self) -> u32 {
+            fn is_square(&self) -> u32 {
                 !((self.legendre() >> 1) as u32)
             }
 
@@ -1713,6 +1713,7 @@ macro_rules! define_fp_core {
                 }
 
                 const fn mmul1(d: $typename, dh: u64, a: $typename, bj: u64) -> ($typename, u64) {
+                    #[allow(clippy::too_many_arguments)]
                     const fn mmul1_inner(
                         d: $typename,
                         dh: u64,

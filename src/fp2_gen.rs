@@ -157,7 +157,7 @@ macro_rules! define_fp2_from_type {
             }
 
             #[inline]
-            fn equals(self, rhs: &Self) -> u32 {
+            fn equals(&self, rhs: &Self) -> u32 {
                 self.x0.equals(&rhs.x0) & self.x1.equals(&rhs.x1)
             }
 
@@ -185,7 +185,7 @@ macro_rules! define_fp2_from_type {
             }
 
             #[inline]
-            fn conjugate(self) -> Self {
+            fn conjugate(&self) -> Self {
                 Self {
                     x0: self.x0,
                     x1: -&self.x1,
@@ -943,6 +943,7 @@ macro_rules! define_fp2_from_type {
             /// voff (counted in bits). The target bit values MUST be all zero
             /// initially in v[] (non-target bits are not modified).
             /// Returned value is `0xFFFFFFFF` on success, `x00000000` on error.
+            #[allow(clippy::too_many_arguments)]
             fn solve_dlp_n_inner(
                 self,
                 gpp: &Vec<Self>,
@@ -1592,7 +1593,7 @@ macro_rules! define_fp2_from_modulus {
         base_typename = $base_typename:ident,
         modulus = $modulus:expr,
     ) => {
-        fp2::define_fp_core!(typename = $base_typename, modulus = $modulus,);
-        fp2::define_fp2_from_type!(typename = $typename, base_field = $base_typename,);
+        $crate::define_fp_core!(typename = $base_typename, modulus = $modulus,);
+        $crate::define_fp2_from_type!(typename = $typename, base_field = $base_typename,);
     };
-}
+} // End of macro: define_fp2_from_modulus

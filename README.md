@@ -12,19 +12,34 @@ These two macros have ended up being stuck inside every rust crypto thing I've w
 
 ## Usage
 
-Fields can be defined using macros as follows:
+The base field can be defined using the macro `define_fp_core` using the modulus as input:
 
 ```rs
 // Fp251: a finite field element GF(p) with p = 3 mod 4.
 // Contents are opaque, all functions are constant-time.
-fp2_rs::define_fp_core!(
+fp2::define_fp_core!(
     typename = Fp251,
     modulus = [0xFFFFFFFFFFFFFFFFu64, 0xFFFFFFFFFFFFFFFFu64, 0xFFFFFFFFFFFFFFFFu64,
 );
+```
 
+For the extension field, it can be generated directly from the modulus as with
+the base field:
+
+```rs
+fp2::define_fp2_from_modulus!(
+    typename = Fp2,
+    base_typename = Fp,
+    modulus = [0xFFFFFFFFFFFFFFFFu64, 0xFFFFFFFFFFFFFFFFu64, 0xFFFFFFFFFFFFFFFFu64,
+);
+```
+
+Or given a type for the base field the extension can be generated directly, which would allow users to supply their own GF(p) arithmetic to extend:
+
+```rs
 // Fp251Ext: a finite field element GF(p^2) with modulus x^2 + 1.
 // Contents are opaque, all functions are constant-time.
-fp2_rs::define_fp2_core!(
+fp2::define_fp2_from_type!(
     typename = Fp251Ext,
     base_field = Fp251,
 );

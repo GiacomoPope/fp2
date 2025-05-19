@@ -4,12 +4,10 @@ mod tests {
     // Random prime with no nice properties for Montgomery friendliness
     mod fp_ugly_tests {
         // Field modulus
-        static MODULUS: [u64; 2] = [0x5A0E852097C48043, 0x7EA2A3A646684E9D];
+        const MODULUS: [u64; 2] = [0x5A0E852097C48043, 0x7EA2A3A646684E9D];
 
-        // Fp139: a finite field element GF(p) with p = 3 mod 4.
         // Contents are opaque, all functions are constant-time.
         // Macro input generated with scripts/gen_fp.sage
-        // p = 2^127 - 1
         fp2::define_fp_core!(typename = FpUgly, modulus = MODULUS,);
         fp2::define_fp_tests!(FpUgly);
 
@@ -22,7 +20,7 @@ mod tests {
 
     mod fp127_tests {
         // Field modulus
-        static MODULUS: [u64; 2] = [0xFFFFFFFFFFFFFFFF, 0x7FFFFFFFFFFFFFFF];
+        const MODULUS: [u64; 2] = [0xFFFFFFFFFFFFFFFF, 0x7FFFFFFFFFFFFFFF];
 
         // Fp139: a finite field element GF(p) with p = 3 mod 4.
         // Contents are opaque, all functions are constant-time.
@@ -40,7 +38,7 @@ mod tests {
 
     mod fp251_tests {
         // Field modulus
-        static MODULUS: [u64; 4] = [
+        const MODULUS: [u64; 4] = [
             0xFFFFFFFFFFFFFFFF,
             0xFFFFFFFFFFFFFFFF,
             0xFFFFFFFFFFFFFFFF,
@@ -64,7 +62,7 @@ mod tests {
 
     mod fp383_tests {
         // Field modulus
-        static MODULUS: [u64; 6] = [
+        const MODULUS: [u64; 6] = [
             0xFFFFFFFFFFFFFFFF,
             0xFFFFFFFFFFFFFFFF,
             0xFFFFFFFFFFFFFFFF,
@@ -88,5 +86,25 @@ mod tests {
         // nqr_re + i is a non-quadratic residue in Fp2
         fp2::define_fp_tests!(Fp383);
         fp2::define_fp2_tests!(Fp383Ext, MODULUS, 6);
+    }
+
+    mod fp434_tests {
+        // NIST lvl 1 SIKE prime: p = 2^216 * 3^137 - 1
+        // Fp434Ext: a finite field element GF(p^2) with modulus x^2 + 1.
+        const MODULUS: [u64; 7] = [
+            0xFFFFFFFFFFFFFFFF,
+            0xFFFFFFFFFFFFFFFF,
+            0xFFFFFFFFFFFFFFFF,
+            0xFDC1767AE2FFFFFF,
+            0x7BC65C783158AEA3,
+            0x6CFC5FD681C52056,
+            0x0002341F27177344,
+        ];
+
+        fp2::define_fp2_from_modulus!(
+            typename = Fp434Ext,
+            base_typename = Fp434,
+            modulus = MODULUS,
+        );
     }
 }
