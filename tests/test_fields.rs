@@ -106,5 +106,10 @@ mod tests {
             base_typename = Fp434,
             modulus = MODULUS,
         );
+
+        // For define_fp2_tests we must include a u64 nqr_re such that
+        // nqr_re + i is a non-quadratic residue in Fp2
+        fp2::define_fp_tests!(Fp434);
+        fp2::define_fp2_tests!(Fp434Ext, MODULUS, 2);
     }
 }

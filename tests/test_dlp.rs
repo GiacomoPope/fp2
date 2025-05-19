@@ -1,7 +1,7 @@
 mod dlp_tests {
     use ::sha2::Digest as _;
 
-    static MODULUS: [u64; 4] = [
+    const MODULUS: [u64; 4] = [
         0xFFFFFFFFFFFFFFFF,
         0xFFFFFFFFFFFFFFFF,
         0xFFFFFFFFFFFFFFFF,
@@ -9,15 +9,15 @@ mod dlp_tests {
     ];
     fp2::define_fp2_from_modulus!(typename = FpExt, base_typename = Fp, modulus = MODULUS,);
 
-    static X0_BYTES: [u8; 32] = [
+    const X0_BYTES: [u8; 32] = [
         95, 51, 176, 225, 246, 188, 81, 242, 105, 159, 184, 190, 205, 23, 116, 243, 24, 244, 58, 0,
         90, 226, 76, 114, 59, 185, 186, 171, 58, 98, 172, 2,
     ];
-    static X1_BYTES: [u8; 32] = [
+    const X1_BYTES: [u8; 32] = [
         181, 108, 226, 218, 242, 204, 118, 176, 75, 251, 210, 112, 60, 175, 196, 112, 193, 69, 49,
         173, 104, 121, 61, 24, 167, 100, 181, 122, 60, 23, 23, 0,
     ];
-    static X: FpExt = FpExt::const_decode_no_check(&X0_BYTES, &X1_BYTES);
+    const X: FpExt = FpExt::const_decode_no_check(&X0_BYTES, &X1_BYTES);
 
     #[test]
     fn test_element_order() {
