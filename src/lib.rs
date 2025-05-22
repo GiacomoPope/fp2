@@ -15,6 +15,6 @@
 
 pub mod fp2_gen;
 pub mod fp_gen;
-pub mod fq;
 pub mod test_macros;
+pub mod traits;
 pub mod utils64;

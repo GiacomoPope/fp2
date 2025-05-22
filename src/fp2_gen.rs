@@ -1,6 +1,11 @@
 //! A macro to define efficient and constant-time arithmetic for the finite field Fp^2
 //! with modulus x^2 + 1
 //!
+//! # Traits
+//!
+//! This macro defines a finite field type GF(p^2) and also implements the trait Fp2
+//! (and the methods for Fp) by re-exporting all necessary functions.
+//!
 //! # Authorship and History
 //!
 //! The majority of this code has been adapted from code written by Thomas Pornin
@@ -1332,8 +1337,8 @@ macro_rules! define_fp2_from_type {
             }
         }
 
-        impl $crate::fq::Fq for $typename {
-            // Reexport constants for Trait
+        impl $crate::traits::Fp for $typename {
+            // Reexport constants for base field Trait
             const ENCODED_LENGTH: usize = Self::ENCODED_LENGTH;
             const ZERO: Self = Self::ZERO;
             const ONE: Self = Self::ONE;
@@ -1341,17 +1346,6 @@ macro_rules! define_fp2_from_type {
             const THREE: Self = Self::THREE;
             const FOUR: Self = Self::FOUR;
             const MINUS_ONE: Self = Self::MINUS_ONE;
-            const ZETA: Self = Self::ZETA;
-            const MINUS_ZETA: Self = Self::ZETA;
-
-            // Re-export functions for Trait
-            // Technically, we could define many of the above functions
-            // directly here rather than in `impl $typename`, but it felt
-            // easier to read to keep everything together above and re-export
-            // for the trait in a consistant way.
-            //
-            // Rust friends:
-            // I am very happy to have feedback on ways to refactor this!
 
             /// Return the value x + i*0 for a given integer x of type `i32`.
             fn from_i32(x: i32) -> Self {
@@ -1371,36 +1365,6 @@ macro_rules! define_fp2_from_type {
             /// Return the value x + i*0 for a given integer x of type `u64`.
             fn from_u64(x: u64) -> Self {
                 Self::from_u64(x)
-            }
-
-            /// Return the value x0 + i*x1 for a given two integers of type `i32`.
-            fn from_i32_pair(x0: i32, x1: i32) -> Self {
-                Self::from_i32_pair(x0, x1)
-            }
-
-            /// Return the value x0 + i*x1 for a given two integers of type `u32`.
-            fn from_u32_pair(x0: u32, x1: u32) -> Self {
-                Self::from_u32_pair(x0, x1)
-            }
-
-            /// Return the value x0 + i*x1 for a given two integers of type `i64`.
-            fn from_i64_pair(x0: i64, x1: i64) -> Self {
-                Self::from_i64_pair(x0, x1)
-            }
-
-            /// Return the value x0 + i*x1 for a given two integers of type `u64`.
-            fn from_u64_pair(x0: u64, x1: u64) -> Self {
-                Self::from_u64_pair(x0, x1)
-            }
-
-            /// Set the "real" component of self to an integer of type `i32` in place.
-            fn set_x0_small(&mut self, x: i32) {
-                self.set_x0_small(x)
-            }
-
-            /// Set the "imaginary" component of self to an integer of type `i32` in place.
-            fn set_x1_small(&mut self, x: i32) {
-                self.set_x1_small(x)
             }
 
             fn is_zero(self) -> u32 {
@@ -1445,9 +1409,6 @@ macro_rules! define_fp2_from_type {
                 self.mul8()
             }
 
-            fn set_conjugate(&mut self) {
-                self.set_conjugate();
-            }
             fn set_mul_small(&mut self, k: i32) {
                 self.set_mul_small(k)
             }
@@ -1470,9 +1431,6 @@ macro_rules! define_fp2_from_type {
                 self.set_pow_u64_vartime(e)
             }
 
-            fn conjugate(self) -> Self {
-                self.conjugate()
-            }
             fn mul_small(self, k: i32) -> Self {
                 self.mul_small(k)
             }
@@ -1515,26 +1473,8 @@ macro_rules! define_fp2_from_type {
             fn is_square(self) -> u32 {
                 self.is_square()
             }
-
-            fn is_square_base_field(self) -> u32 {
-                self.is_square_base_field()
-            }
-
             fn batch_invert(xx: &mut [Self]) {
                 Self::batch_invert(xx)
-            }
-
-            fn precompute_dlp_tables(self, n: usize) -> (Vec<usize>, Vec<Self>, u32) {
-                self.precompute_dlp_tables(n)
-            }
-
-            fn solve_dlp_2e(
-                self,
-                x: &Self,
-                e: usize,
-                precomputed_tables: Option<(&Vec<usize>, &Vec<Self>)>,
-            ) -> (Vec<u8>, u32) {
-                self.solve_dlp_2e(x, e, precomputed_tables)
             }
 
             fn set_select(&mut self, a: &Self, b: &Self, ctl: u32) {
@@ -1572,6 +1512,67 @@ macro_rules! define_fp2_from_type {
 
             fn hashcode(self) -> u64 {
                 self.hashcode()
+            }
+        }
+
+        impl $crate::traits::Fp2 for $typename {
+            // Reexport constants for Trait
+            const ZETA: Self = Self::ZETA;
+            const MINUS_ZETA: Self = Self::ZETA;
+
+            /// Return the value x0 + i*x1 for a given two integers of type `i32`.
+            fn from_i32_pair(x0: i32, x1: i32) -> Self {
+                Self::from_i32_pair(x0, x1)
+            }
+
+            /// Return the value x0 + i*x1 for a given two integers of type `u32`.
+            fn from_u32_pair(x0: u32, x1: u32) -> Self {
+                Self::from_u32_pair(x0, x1)
+            }
+
+            /// Return the value x0 + i*x1 for a given two integers of type `i64`.
+            fn from_i64_pair(x0: i64, x1: i64) -> Self {
+                Self::from_i64_pair(x0, x1)
+            }
+
+            /// Return the value x0 + i*x1 for a given two integers of type `u64`.
+            fn from_u64_pair(x0: u64, x1: u64) -> Self {
+                Self::from_u64_pair(x0, x1)
+            }
+
+            /// Set the "real" component of self to an integer of type `i32` in place.
+            fn set_x0_small(&mut self, x: i32) {
+                self.set_x0_small(x)
+            }
+
+            /// Set the "imaginary" component of self to an integer of type `i32` in place.
+            fn set_x1_small(&mut self, x: i32) {
+                self.set_x1_small(x)
+            }
+
+            fn set_conjugate(&mut self) {
+                self.set_conjugate();
+            }
+
+            fn conjugate(self) -> Self {
+                self.conjugate()
+            }
+
+            fn is_square_base_field(self) -> u32 {
+                self.is_square_base_field()
+            }
+
+            fn precompute_dlp_tables(self, n: usize) -> (Vec<usize>, Vec<Self>, u32) {
+                self.precompute_dlp_tables(n)
+            }
+
+            fn solve_dlp_2e(
+                self,
+                x: &Self,
+                e: usize,
+                precomputed_tables: Option<(&Vec<usize>, &Vec<Self>)>,
+            ) -> (Vec<u8>, u32) {
+                self.solve_dlp_2e(x, e, precomputed_tables)
             }
         }
     };

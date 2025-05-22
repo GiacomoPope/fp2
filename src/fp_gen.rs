@@ -1,6 +1,11 @@
 //! A macro to define efficient and constant-time arithmetic for finite fields Fp with
 //! p = 3 mod 4 using Montgomery multiplication.
 //!
+//! # Traits
+//!
+//! This macro defines a finite field type for GF(p) and also implements the trait Fp
+//! by re-exporting all necessary functions.
+//!
 //! # Authorship and History
 //!
 //! The majority of this code has been adapted from code written by Thomas Pornin
@@ -1112,6 +1117,90 @@ macro_rules! define_fp_core {
                 x
             }
 
+            /// Raise this value to the power e. The exponent length (in bits)
+            /// MUST be at most ebitlen. This is constant-time for both the
+            /// base value (self) and the exponent (e); the exponent maximum
+            /// size (ebitlen) is considered non-secret.
+            fn set_pow_u64(&mut self, e: u64, ebitlen: usize) {
+                match ebitlen {
+                    0 => {
+                        *self = Self::ONE;
+                    }
+                    1 => {
+                        self.set_cond(&Self::ONE, ((e as u32) & 1).wrapping_sub(1));
+                    }
+                    _ => {
+                        let x = *self;
+                        self.set_cond(
+                            &Self::ONE,
+                            (((e >> (ebitlen - 1)) as u32) & 1).wrapping_sub(1),
+                        );
+                        for i in (0..(ebitlen - 1)).rev() {
+                            self.set_square();
+                            let y = &*self * &x;
+                            self.set_cond(&y, (((e >> i) as u32) & 1).wrapping_neg());
+                        }
+                    }
+                }
+            }
+
+            /// Return this value to the power e. The exponent length (in bits)
+            /// MUST be at most ebitlen. This is constant-time for both the
+            /// base value (self) and the exponent (e); the exponent maximum
+            /// size (ebitlen) is considered non-secret.
+            fn pow_u64(self, e: u64, ebitlen: usize) -> Self {
+                let mut x = self;
+                x.set_pow_u64(e, ebitlen);
+                x
+            }
+
+            /// Raise this value to the power e. The exponent is considered
+            /// non-secret.
+            fn set_pow_u64_vartime(&mut self, e: u64) {
+                match e {
+                    0 => {
+                        *self = Self::ONE;
+                    }
+                    1 => {
+                        return;
+                    }
+                    2 => {
+                        self.set_square();
+                    }
+                    3 => {
+                        *self *= self.square();
+                    }
+                    4 => {
+                        self.set_square();
+                        self.set_square();
+                    }
+                    _ => {
+                        let xx = self.square();
+                        let xw = [*self, xx, xx * &*self];
+                        let mut j = 63 - e.leading_zeros();
+                        j &= !1u32;
+                        *self = xw[((e >> j) as usize) - 1];
+                        while j > 0 {
+                            j -= 2;
+                            self.set_square();
+                            self.set_square();
+                            let k = ((e >> j) as usize) & 3;
+                            if k > 0 {
+                                self.set_mul(&xw[k - 1]);
+                            }
+                        }
+                    }
+                }
+            }
+
+            /// Return this value to the power e. The exponent is considered
+            /// non-secret.
+            fn pow_u64_vartime(self, e: u64) -> Self {
+                let mut x = self;
+                x.set_pow_u64_vartime(e);
+                x
+            }
+
             /// Legendre symbol on this value. Return value is:
             ///   0   if this value is zero
             ///  +1   if this value is a non-zero quadratic residue
@@ -1504,6 +1593,41 @@ macro_rules! define_fp_core {
                 }
                 // Regular sum of products (could the above be optimised into the main loop?)
                 Self::sum_of_products(a1, b1, a2, &b2_minus)
+            }
+
+            fn batch_invert(xx: &mut [Self]) {
+                // We use Montgomery's trick:
+                //   1/u = v*(1/(u*v))
+                //   1/v = u*(1/(u*v))
+                // Applied recursively on n elements, this computes an inversion
+                // with a single inversion in the field, and 3*(n-1) multiplications.
+                // We use batches of 200 elements; larger batches only yield
+                // moderate improvements, while sticking to a fixed moderate batch
+                // size allows stack-based allocation.
+                let n = xx.len();
+                let mut i = 0;
+                while i < n {
+                    let blen = if (n - i) > 200 { 200 } else { n - i };
+                    let mut tt = [Self::ZERO; 200];
+                    tt[0] = xx[i];
+                    let zz0 = tt[0].is_zero();
+                    tt[0].set_cond(&Self::ONE, zz0);
+                    for j in 1..blen {
+                        tt[j] = xx[i + j];
+                        tt[j].set_cond(&Self::ONE, tt[j].is_zero());
+                        tt[j] *= tt[j - 1];
+                    }
+                    let mut k = Self::ONE / tt[blen - 1];
+                    for j in (1..blen).rev() {
+                        let mut x = xx[i + j];
+                        let zz = x.is_zero();
+                        x.set_cond(&Self::ONE, zz);
+                        xx[i + j].set_cond(&(k * tt[j - 1]), !zz);
+                        k *= x;
+                    }
+                    xx[i].set_cond(&k, !zz0);
+                    i += blen;
+                }
             }
 
             /*
@@ -2154,6 +2278,190 @@ macro_rules! define_fp_core {
             #[inline(always)]
             fn sub_assign(&mut self, other: &$typename) {
                 self.set_sub(other);
+            }
+        }
+
+        impl $crate::traits::Fp for $typename {
+            // Reexport constants for base field Trait
+            const ENCODED_LENGTH: usize = Self::ENCODED_LENGTH;
+            const ZERO: Self = Self::ZERO;
+            const ONE: Self = Self::ONE;
+            const TWO: Self = Self::TWO;
+            const THREE: Self = Self::THREE;
+            const FOUR: Self = Self::FOUR;
+            const MINUS_ONE: Self = Self::MINUS_ONE;
+
+            /// Return the value x + i*0 for a given integer x of type `i32`.
+            fn from_i32(x: i32) -> Self {
+                Self::from_i32(x)
+            }
+
+            /// Return the value x + i*0 for a given integer x of type `u32`.
+            fn from_u32(x: u32) -> Self {
+                Self::from_u32(x)
+            }
+
+            /// Return the value x + i*0 for a given integer x of type `i64`.
+            fn from_i64(x: i64) -> Self {
+                Self::from_i64(x)
+            }
+
+            /// Return the value x + i*0 for a given integer x of type `u64`.
+            fn from_u64(x: u64) -> Self {
+                Self::from_u64(x)
+            }
+
+            fn is_zero(self) -> u32 {
+                self.is_zero()
+            }
+
+            fn equals(self, rhs: &Self) -> u32 {
+                self.equals(rhs)
+            }
+
+            fn set_neg(&mut self) {
+                self.set_neg()
+            }
+
+            fn set_half(&mut self) {
+                self.set_half()
+            }
+
+            fn set_mul2(&mut self) {
+                self.set_mul2()
+            }
+
+            fn set_mul3(&mut self) {
+                self.set_mul3()
+            }
+
+            fn set_mul4(&mut self) {
+                self.set_mul4()
+            }
+
+            fn set_mul8(&mut self) {
+                self.set_mul8()
+            }
+
+            fn half(self) -> Self {
+                self.half()
+            }
+            fn mul2(self) -> Self {
+                self.mul2()
+            }
+            fn mul3(self) -> Self {
+                self.mul3()
+            }
+            fn mul4(self) -> Self {
+                self.mul4()
+            }
+            fn mul8(self) -> Self {
+                self.mul8()
+            }
+
+            fn set_mul_small(&mut self, k: i32) {
+                self.set_mul_small(k)
+            }
+            fn set_square(&mut self) {
+                self.set_square()
+            }
+            fn set_invert(&mut self) {
+                self.set_invert()
+            }
+            fn set_pow(&mut self, e: &[u8], ebitlen: usize) {
+                self.set_pow(e, ebitlen)
+            }
+            fn set_pow_ext(&mut self, e: &[u8], eoff: usize, ebitlen: usize) {
+                self.set_pow_ext(e, eoff, ebitlen)
+            }
+            fn set_pow_u64(&mut self, e: u64, ebitlen: usize) {
+                self.set_pow_u64(e, ebitlen)
+            }
+            fn set_pow_u64_vartime(&mut self, e: u64) {
+                self.set_pow_u64_vartime(e)
+            }
+
+            fn mul_small(self, k: i32) -> Self {
+                self.mul_small(k)
+            }
+            fn square(self) -> Self {
+                self.square()
+            }
+            fn invert(self) -> Self {
+                self.invert()
+            }
+            fn pow(self, e: &[u8], ebitlen: usize) -> Self {
+                self.pow(e, ebitlen)
+            }
+            fn pow_ext(self, e: &[u8], eoff: usize, ebitlen: usize) -> Self {
+                self.pow_ext(e, eoff, ebitlen)
+            }
+            fn pow_u64(&mut self, e: u64, ebitlen: usize) -> Self {
+                self.pow_u64(e, ebitlen)
+            }
+            fn pow_u64_vartime(&mut self, e: u64) -> Self {
+                self.pow_u64_vartime(e)
+            }
+
+            fn set_sqrt(&mut self) -> u32 {
+                self.set_sqrt()
+            }
+            fn set_fourth_root(&mut self) -> u32 {
+                self.set_fourth_root()
+            }
+            fn sqrt(self) -> (Self, u32) {
+                self.sqrt()
+            }
+            fn fourth_root(self) -> (Self, u32) {
+                self.fourth_root()
+            }
+
+            fn legendre(self) -> i32 {
+                self.legendre()
+            }
+
+            fn is_square(self) -> u32 {
+                self.is_square()
+            }
+            fn batch_invert(xx: &mut [Self]) {
+                Self::batch_invert(xx)
+            }
+
+            fn set_select(&mut self, a: &Self, b: &Self, ctl: u32) {
+                self.set_select(a, b, ctl)
+            }
+            fn set_cond(&mut self, rhs: &Self, ctl: u32) {
+                self.set_cond(rhs, ctl)
+            }
+            fn set_condneg(&mut self, ctl: u32) {
+                self.set_condneg(ctl)
+            }
+            fn select(a: &Self, b: &Self, ctl: u32) -> Self {
+                Self::select(a, b, ctl)
+            }
+            fn condswap(a: &mut Self, b: &mut Self, ctl: u32) {
+                Self::condswap(a, b, ctl)
+            }
+
+            fn encode(self) -> [u8; Self::ENCODED_LENGTH] {
+                self.encode()
+            }
+            fn decode(buf: &[u8]) -> (Self, u32) {
+                Self::decode(buf)
+            }
+            fn decode_reduce(buf: &[u8]) -> Self {
+                Self::decode_reduce(buf)
+            }
+
+            fn set_rand<R: ::rand_core::CryptoRng + ::rand_core::RngCore>(&mut self, rng: &mut R) {
+                self.set_rand(rng)
+            }
+            fn rand<R: ::rand_core::CryptoRng + ::rand_core::RngCore>(rng: &mut R) -> Self {
+                Self::rand(rng)
+            }
+
+            fn hashcode(self) -> u64 {
+                self.hashcode()
             }
         }
     };
