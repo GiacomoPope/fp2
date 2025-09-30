@@ -11,7 +11,9 @@ macro_rules! define_fp_tests {
         use ::num_bigint::ToBigInt as _;
         use ::sha2::Digest as _;
 
-        fn check_fp_ops(va: &[u8], vb: &[u8], with_sqrt_and_fourth_root: bool) {
+        fn check_fp_ops(va: &[u8], vb: &[u8], with_sqrt_and_fourth_root: bool) -> u32 {
+            let mut ret: u32 = 0;
+
             let mut zpww = [0u32; <$Fp>::N * 2];
             for i in 0..<$Fp>::N {
                 zpww[2 * i] = <$Fp>::MODULUS[i] as u32;
@@ -143,19 +145,19 @@ macro_rules! define_fp_tests {
                 assert!(c.is_square() == 0);
             }
 
-            // Different sums of products
-            let c0 = a * b + b * b;
-            let c1 = <$Fp>::sum_of_products(&a, &b, &b, &b);
-            assert!(c1.equals(&c0) != 0);
-
-            // Difference of products
+            // Sum and Difference of products
             let c = a * b;
             let d = b * c;
+
+            let c0 = a * b + c * d;
+            let c1 = <$Fp>::sum_of_products(&a, &b, &c, &d);
+            assert!(c1.equals(&c0) != 0, "sum of products failed");
+
             let c0 = a * b - c * d;
             let c1 = <$Fp>::difference_of_products(&a, &b, &c, &d);
             let c2 = <$Fp>::sum_of_products(&a, &b, &c, &(-&d));
-            assert!(c1.equals(&c0) != 0);
-            assert!(c2.equals(&c0) != 0);
+            assert!(c1.equals(&c0) != 0, "difference of products failed");
+            assert!(c2.equals(&c0) != 0, "sum of products failed");
 
             if with_sqrt_and_fourth_root {
                 let (c, r) = (a * a).sqrt();
@@ -186,13 +188,16 @@ macro_rules! define_fp_tests {
                     assert!(r == 0x00000000);
                 }
             }
+
+            return ret;
         }
 
         #[test]
         fn fp_ops() {
+            let mut count = 0;
             let mut va = [0u8; (<$Fp>::ENCODED_LENGTH + 64) & !31usize];
             let mut vb = [0u8; (<$Fp>::ENCODED_LENGTH + 64) & !31usize];
-            for i in 0..300 {
+            for i in 0..500 {
                 let mut sh = ::sha2::Sha256::new();
                 for j in 0..(va.len() >> 5) {
                     sh.update(((256 * i + 8 * j + 0) as u64).to_le_bytes());
@@ -208,7 +213,13 @@ macro_rules! define_fp_tests {
                 if i == 11 || i == 12 {
                     vb.fill(0);
                 }
-                check_fp_ops(&va, &vb, i < 30);
+                let err = check_fp_ops(&va, &vb, i < 30);
+                count += err;
+            }
+
+            if (count > 0) {
+                println! {"count: {}", count};
+                assert!(false);
             }
         }
     };
@@ -296,7 +307,21 @@ macro_rules! define_fp2_tests {
             let zd1 = ((&za0 * &zb1) + (&za1 * &zb0)) % &zp;
             assert!(zc0 == zd0 && zc1 == zd1);
 
-            let c = a.mul_new(b);
+            let c = a.mul_schoolbook(b);
+            let vc = c.encode();
+            let zc0 = ::num_bigint::BigInt::from_bytes_le(
+                ::num_bigint::Sign::Plus,
+                &vc[..FP_ENCODED_LENGTH],
+            );
+            let zc1 = ::num_bigint::BigInt::from_bytes_le(
+                ::num_bigint::Sign::Plus,
+                &vc[FP_ENCODED_LENGTH..],
+            );
+            let zd0 = (&zp + ((&za0 * &zb0) % &zp) - ((&za1 * &zb1) % &zp)) % &zp;
+            let zd1 = ((&za0 * &zb1) + (&za1 * &zb0)) % &zp;
+            assert!(zc0 == zd0 && zc1 == zd1);
+
+            let c = a.mul_sum_of_products(b);
             let vc = c.encode();
             let zc0 = ::num_bigint::BigInt::from_bytes_le(
                 ::num_bigint::Sign::Plus,

@@ -12,6 +12,7 @@
 // defined within the Fq trait
 #![allow(incomplete_features)]
 #![feature(generic_const_exprs)]
+#![recursion_limit = "256"]
 
 pub mod fp2_gen;
 pub mod fp_gen;

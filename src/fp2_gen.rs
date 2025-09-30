@@ -202,7 +202,7 @@ macro_rules! define_fp2_from_type {
             // algorithm which efficiently computes sums and differences of
             // products. For more information, see the `sum_of_products()`
             // function in `fp_gen.rs`.
-            fn set_mul_old(&mut self, rhs: &Self) {
+            fn set_mul_schoolbook(&mut self, rhs: &Self) {
                 // a <- x0*y0
                 // b <- x1*y1
                 // c <- (x0 + x1)*(y0 + y1)
@@ -218,15 +218,8 @@ macro_rules! define_fp2_from_type {
                 self.x1 -= &b;
             }
 
-            #[inline]
-            fn mul_old(self, rhs: Self) -> Self {
-                let mut r = self;
-                r.set_mul_old(&rhs);
-                r
-            }
-
             #[inline(always)]
-            fn set_mul(&mut self, rhs: &Self) {
+            fn set_mul_products(&mut self, rhs: &Self) {
                 // Computes x*y from:
                 // x = (x0 + i*x1)
                 // y = (y0 + i*y1)
@@ -241,10 +234,28 @@ macro_rules! define_fp2_from_type {
                 self.x1 = x1;
             }
 
+            #[inline(always)]
+            fn set_mul(&mut self, rhs: &Self) {
+                // If the sum of products needs additional subtractions, then
+                // most of the time schoolbook is better.
+                if <$Fp>::SUM_OF_PRODUCTS_ADDITIONAL_SUB {
+                    self.set_mul_schoolbook(rhs);
+                } else {
+                    self.set_mul_products(rhs);
+                }
+            }
+
             #[inline]
-            fn mul_new(self, rhs: Self) -> Self {
+            fn mul_schoolbook(self, rhs: Self) -> Self {
                 let mut r = self;
-                r.set_mul(&rhs);
+                r.set_mul_schoolbook(&rhs);
+                r
+            }
+
+            #[inline]
+            fn mul_sum_of_products(self, rhs: Self) -> Self {
+                let mut r = self;
+                r.set_mul_products(&rhs);
                 r
             }
 

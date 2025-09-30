@@ -16,6 +16,11 @@ mod tests {
         // Macro input generated with scripts/gen_fp.sage
         fp2::define_fp2_from_modulus!(typename = FpUglyExt, base_typename = Fp, modulus = MODULUS,);
         fp2::define_fp2_tests!(FpUglyExt, MODULUS, 1);
+
+        #[test]
+        fn check_sum_of_products_flag() {
+            assert!(!FpUgly::SUM_OF_PRODUCTS_ADDITIONAL_SUB);
+        }
     }
 
     mod fp127_tests {
@@ -34,6 +39,11 @@ mod tests {
         // Macro input generated with scripts/gen_fp.sage
         fp2::define_fp2_from_modulus!(typename = Fp127Ext, base_typename = Fp, modulus = MODULUS,);
         fp2::define_fp2_tests!(Fp127Ext, MODULUS, 2);
+
+        #[test]
+        fn check_sum_of_products_flag() {
+            assert!(!Fp127::SUM_OF_PRODUCTS_ADDITIONAL_SUB);
+        }
     }
 
     mod fp251_tests {
@@ -58,6 +68,11 @@ mod tests {
 
         fp2::define_fp_tests!(Fp251);
         fp2::define_fp2_tests!(Fp251Ext, MODULUS, 5);
+
+        #[test]
+        fn check_sum_of_products_flag() {
+            assert!(!Fp251::SUM_OF_PRODUCTS_ADDITIONAL_SUB);
+        }
     }
 
     mod fp383_tests {
@@ -86,6 +101,11 @@ mod tests {
         // nqr_re + i is a non-quadratic residue in Fp2
         fp2::define_fp_tests!(Fp383);
         fp2::define_fp2_tests!(Fp383Ext, MODULUS, 6);
+
+        #[test]
+        fn check_sum_of_products_flag() {
+            assert!(!Fp383::SUM_OF_PRODUCTS_ADDITIONAL_SUB);
+        }
     }
 
     mod fp434_tests {
@@ -111,5 +131,87 @@ mod tests {
         // nqr_re + i is a non-quadratic residue in Fp2
         fp2::define_fp_tests!(Fp434);
         fp2::define_fp2_tests!(Fp434Ext, MODULUS, 2);
+
+        #[test]
+        fn check_sum_of_products_flag() {
+            assert!(!Fp434::SUM_OF_PRODUCTS_ADDITIONAL_SUB);
+        }
+    }
+
+    // This modulus is very close to the value R = 2^(64 * 14) and so
+    // needs an extra conditional subtraction in the sum of products
+    // method.
+    mod fp896_tests {
+        const MODULUS: [u64; 14] = [
+            0xFFFFFFFFFFFFFFFF,
+            0xFFFFFFFFFFFFFFFF,
+            0xFFFFFFFFFFFFFFFF,
+            0xFFFFFFFFFFFFFFFF,
+            0xFFFFFFFFFFFFFFFF,
+            0xFFFFFFFFFFFFFFFF,
+            0xFFFFFFFFFFFFFFFF,
+            0xFFFFFFFFFFFFFFFF,
+            0xFFFFFFFFFFFFFFFF,
+            0xFFFFFFFFFFFFFFFF,
+            0xFFFFFFFFFFFFFFFF,
+            0xFFFFFFFFFFFFFFFF,
+            0xFFFFFFFFFFFFFFFF,
+            0xA7FFFFFFFFFFFFFF,
+        ];
+        // Fp896: a finite field element GF(p) with p = 3 mod 4.
+        // Contents are opaque, all functions are constant-time.
+        fp2::define_fp_core!(typename = Fp896, modulus = MODULUS,);
+
+        // Fp896Ext: a finite field element GF(p^2) with modulus x^2 + 1.
+        // Contents are opaque, all functions are constant-time.
+        fp2::define_fp2_from_type!(typename = Fp896Ext, base_field = Fp896,);
+
+        fp2::define_fp_tests!(Fp896);
+        fp2::define_fp2_tests!(Fp896Ext, MODULUS, 2);
+
+        #[test]
+        fn check_sum_of_products_flag() {
+            assert!(Fp896::SUM_OF_PRODUCTS_ADDITIONAL_SUB);
+        }
+    }
+
+    // When the word length is larger than 20, we slightly modify set_mul
+    mod fp1554_tests {
+        static MODULUS: [u64; 25] = [
+            0xFFFFFFFFFFFFFFFF,
+            0xFFFFFFFFFFFFFFFF,
+            0xFFFFFFFFFFFFFFFF,
+            0xFFFFFFFFFFFFFFFF,
+            0xFFFFFFFFFFFFFFFF,
+            0xFFFFFFFFFFFFFFFF,
+            0xFFFFFFFFFFFFFFFF,
+            0xFFFFFFFFFFFFFFFF,
+            0xFFFFFFFFFFFFFFFF,
+            0xFFFFFFFFFFFFFFFF,
+            0xFFFFFFFFFFFFFFFF,
+            0xFFFFFFFFFFFFFFFF,
+            0xFFFFFFFFFFFFFFFF,
+            0xFFFFFFFFFFFFFFFF,
+            0xFFFFFFFFFFFFFFFF,
+            0xFFFFFFFFFFFFFFFF,
+            0xFFFFFFFFFFFFFFFF,
+            0xFFFFFFFFFFFFFFFF,
+            0xFFFFFFFFFFFFFFFF,
+            0xFFFFFFFFFFFFFFFF,
+            0xFFFFFFFFFFFFFFFF,
+            0xFFFFFFFFFFFFFFFF,
+            0xFFFFFFFFFFFFFFFF,
+            0xFFFFFFFFFFFFFFFF,
+            0x0000000000047FFF,
+        ];
+        // Fp896: a finite field element GF(p) with p = 3 mod 4.
+        // Contents are opaque, all functions are constant-time.
+        fp2::define_fp_core!(typename = Fp1554, modulus = MODULUS,);
+        fp2::define_fp_tests!(Fp1554);
+
+        #[test]
+        fn check_sum_of_products_flag() {
+            assert!(!Fp1554::SUM_OF_PRODUCTS_ADDITIONAL_SUB);
+        }
     }
 }
