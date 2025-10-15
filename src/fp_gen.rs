@@ -83,6 +83,7 @@ macro_rules! define_fp_core {
             );
             const SQRT_EXP: [u64; Self::N] = Self::const_sqrt_exp();
             const FOURTH_ROOT_EXP: [u64; Self::N] = Self::const_fourth_root_exp();
+            pub const SUM_OF_PRODUCTS_ADDITIONAL_SUB: bool = Self::sum_of_products_check();
 
             // Predefined constants used externally
             pub const ZERO: Self = Self([0u64; Self::N]);
@@ -252,9 +253,56 @@ macro_rules! define_fp_core {
                 }
             }
 
-            /// Multiply this value by `rhs`.
+            /// Multiply this value by `rhs`, optimised for when N is "small"
             #[inline]
-            fn set_mul(&mut self, rhs: &Self) {
+            fn set_mul_small_word_len(&mut self, rhs: &Self) {
+                let mut t = Self::ZERO;
+
+                let mut cch: u8 = 0;
+                for i in 0..Self::N {
+                    let (lo, mut cc1) = $crate::utils64::umull_add(rhs.0[i], self.0[0], t.0[0]);
+                    t.0[0] = lo;
+                    for j in 1..Self::N {
+                        let (d, hi1) =
+                            $crate::utils64::umull_add2(rhs.0[i], self.0[j], t.0[j], cc1);
+                        cc1 = hi1;
+                        t.0[j] = d;
+                    }
+
+                    let q = t.0[0].wrapping_mul(Self::P0I);
+
+                    let (_, mut cc2) = $crate::utils64::umull_add(q, Self::MODULUS[0], t.0[0]);
+                    for j in 1..Self::N {
+                        let (d, hi2) =
+                            $crate::utils64::umull_add2(q, Self::MODULUS[j], t.0[j], cc2);
+                        cc2 = hi2;
+                        t.0[j - 1] = d;
+                    }
+                    let (d, ee) = $crate::utils64::addcarry_u64(cc1, cc2, cch);
+                    t.0[Self::N - 1] = d;
+                    cch = ee;
+                }
+
+                // final reduction: subtract modulus if necessary
+                let mut cc = 0;
+                for i in 0..Self::N {
+                    let (d, ee) = $crate::utils64::subborrow_u64(t.0[i], Self::MODULUS[i], cc);
+                    t.0[i] = d;
+                    cc = ee;
+                }
+                let mask = (cch as u64).wrapping_sub(cc as u64);
+                cc = 0;
+                for i in 0..Self::N {
+                    let (d, ee) =
+                        $crate::utils64::addcarry_u64(t.0[i], mask & Self::MODULUS[i], cc);
+                    self.0[i] = d;
+                    cc = ee;
+                }
+            }
+
+            /// Multiply this value by `rhs`, optimised for when N is "large"
+            #[inline]
+            fn set_mul_large_word_len(&mut self, rhs: &Self) {
                 let mut t = Self::ZERO;
 
                 // combined muls + reduction
@@ -289,6 +337,17 @@ macro_rules! define_fp_core {
                     let (d, ee) = $crate::utils64::addcarry_u64(t.0[i], mm & Self::MODULUS[i], cc);
                     self.0[i] = d;
                     cc = ee;
+                }
+            }
+
+            /// Multiply this value by `rhs`.
+            #[inline]
+            fn set_mul(&mut self, rhs: &Self) {
+                // TODO: what's the best bound here?
+                if Self::N < 15 {
+                    self.set_mul_small_word_len(rhs);
+                } else {
+                    self.set_mul_large_word_len(rhs);
                 }
             }
 
@@ -1510,69 +1569,83 @@ macro_rules! define_fp_core {
             /// for use in Fp2 multiplications
             #[inline(always)]
             pub fn sum_of_products(a1: &Self, b1: &Self, a2: &Self, b2: &Self) -> Self {
-                // We return the Fp element u, initalised to zero
+                // Line 1: u <- 0
                 let mut u = Self::ZERO;
 
-                // Initalise some additional values to track carries.
-                let mut carry_limb: u64 = 0u64;
-                let mut hi_limb: u64 = 0u64;
-                let mut hi_carry: u8 = 0u8;
+                let mut cc1: u64;
+                let mut cc2: u64;
+                let mut cc3: u64;
 
-                // Montgomery multiplcation is interleaved, so we loop through every limb
-                // multiplying by the bottom word of on element through every word of the
-                // other and then perform a single Montgomery reducton
+                let mut cch: u8 = 0;
+                let mut cch1: u8 = 0;
+                let mut cch2: u8 = 0;
+
+                // Line 2: for j = 0 to N - 1
                 for j in 0..Self::N {
-                    // Compute u = u + a1j * b1
-                    let a1j = a1.0[j];
-                    (u.0[0], carry_limb) = $crate::utils64::umull_add(a1j, b1.0[0], u.0[0]);
-                    for k in 1..Self::N {
-                        (u.0[k], carry_limb) =
-                            $crate::utils64::umull_add2(a1j, b1.0[k], u.0[k], carry_limb);
-                    }
-                    (hi_limb, hi_carry) =
-                        $crate::utils64::addcarry_u64(hi_limb, carry_limb, hi_carry);
+                    // Line 3: u <- u + a0,j * b0 + a1,j * b1
 
-                    // Compute u = u + a2j * b2
-                    let a2j = a2.0[j];
-                    (u.0[0], carry_limb) = $crate::utils64::umull_add(a2j, b2.0[0], u.0[0]);
+                    // We can always compute a * b + c + d = lo + 2^64 * hi
+                    // This is what we do in the inner loop to compute
+                    //     u <- u + a0,j * b0
+                    (u.0[0], cc1) = $crate::utils64::umull_add(a1.0[j], b1.0[0], u.0[0]);
                     for k in 1..Self::N {
-                        (u.0[k], carry_limb) =
-                            $crate::utils64::umull_add2(a2j, b2.0[k], u.0[k], carry_limb);
+                        (u.0[k], cc1) = $crate::utils64::umull_add2(a1.0[j], b1.0[k], u.0[k], cc1);
                     }
-                    (hi_limb, hi_carry) =
-                        $crate::utils64::addcarry_u64(hi_limb, carry_limb, hi_carry);
+                    //     u <- u + a1,j * b1
+                    (u.0[0], cc2) = $crate::utils64::umull_add(a2.0[j], b2.0[0], u.0[0]);
+                    for k in 1..Self::N {
+                        (u.0[k], cc2) = $crate::utils64::umull_add2(a2.0[j], b2.0[k], u.0[k], cc2);
+                    }
 
-                    // Perform a single step of the Montgomery reduction process by computing
-                    // q = u0 * (-1/p) mod 2^64
-                    // Then computing
-                    // u = (u + q * p) / 2^64
+                    // Line 4: q <- u * p' mod 2^64
                     let q = u.0[0].wrapping_mul(Self::P0I);
-                    (_, carry_limb) = $crate::utils64::umull_add(q, Self::MODULUS[0], u.0[0]);
-                    for k in 1..Self::N {
-                        (u.0[k - 1], carry_limb) =
-                            $crate::utils64::umull_add2(q, Self::MODULUS[k], u.0[k], carry_limb);
-                    }
-                    (u.0[Self::N - 1], hi_carry) =
-                        $crate::utils64::addcarry_u64(hi_limb, carry_limb, hi_carry);
 
-                    // Shift the high carry into the high limb for the next iteration.
-                    hi_limb = (hi_carry as u64);
-                    hi_carry = 0;
+                    // Line 5: u <- (u + q * p') / 2^64
+                    (_, cc3) = $crate::utils64::umull_add(q, Self::MODULUS[0], u.0[0]);
+                    for k in 1..Self::N {
+                        (u.0[k - 1], cc3) =
+                            $crate::utils64::umull_add2(q, Self::MODULUS[k], u.0[k], cc3);
+                    }
+
+                    // We now have to handle all the carries, which means adding cc1, cc2 and cc3 as well
+                    // as the carry cch from the last iteration
+                    (u.0[Self::N - 1], cch1) = $crate::utils64::addcarry_u64(cc1, cc2, cch);
+                    (u.0[Self::N - 1], cch2) =
+                        $crate::utils64::addcarry_u64(u.0[Self::N - 1], cc3, 0);
+                    cch = cch1 + cch2;
                 }
 
-                // The result of the above is a value within [0, 2p)
-                // We subtract the modulus to obtain something in the range [-p, 0) and
-                // conditionally add the modulus back if the previous result was negative
-                let mut borrow = 0;
+                // From the paper we have something in the range [0, 2p) if 2*(p - 1)^2 < p*R
+                // Which means we need to subtract p and then conditionally add p back
+                let mut borrow: u8 = 0;
                 for i in 0..Self::N {
                     (u.0[i], borrow) =
                         $crate::utils64::subborrow_u64(u.0[i], Self::MODULUS[i], borrow);
                 }
-                let mask = (hi_limb).wrapping_sub(borrow as u64);
-                borrow = 0;
+                let mask = (cch as u64).wrapping_sub(borrow as u64);
+                let mut cc = 0;
                 for i in 0..Self::N {
-                    (u.0[i], borrow) =
-                        $crate::utils64::addcarry_u64(u.0[i], mask & Self::MODULUS[i], borrow);
+                    (u.0[i], cc) =
+                        $crate::utils64::addcarry_u64(u.0[i], mask & Self::MODULUS[i], cc);
+                }
+
+                // We are only guarenteed that the above result is in [0, 2p) when we have the
+                // condition: 2*(p - 1)^2 < p*R which is true most of the time, but not when
+                // p is close to R. When the user's modulus is too close to 2^(64 * N) then we
+                // may need an additional conditional subtraction to get a result within the canonical
+                // range.
+                if Self::SUM_OF_PRODUCTS_ADDITIONAL_SUB {
+                    borrow = 0;
+                    for i in 0..Self::N {
+                        (u.0[i], borrow) =
+                            $crate::utils64::subborrow_u64(u.0[i], Self::MODULUS[i], borrow);
+                    }
+                    let mask = (borrow as u64).wrapping_neg();
+                    cc = 0;
+                    for i in 0..Self::N {
+                        (u.0[i], cc) =
+                            $crate::utils64::addcarry_u64(u.0[i], mask & Self::MODULUS[i], cc);
+                    }
                 }
 
                 u
@@ -1660,6 +1733,22 @@ macro_rules! define_fp_core {
                 (z as u64, ((z >> 64) as u64).wrapping_neg())
             }
 
+            // Add the modulus, return borrow (compile-time).
+            const fn addm(a: Self) -> (Self, u64) {
+                const fn addm_inner(a: $typename, cc: u64, i: usize) -> ($typename, u64) {
+                    if i == a.0.len() {
+                        (a, cc)
+                    } else {
+                        let (d, cc) = $typename::adc(a.0[i], $typename::MODULUS[i], cc);
+                        let mut aa = a;
+                        aa.0[i] = d;
+                        addm_inner(aa, cc, i + 1)
+                    }
+                }
+
+                addm_inner(a, 0, 0)
+            }
+
             // Subtract the modulus, return borrow (compile-time).
             const fn subm(a: Self) -> (Self, u64) {
                 const fn subm_inner(a: $typename, cc: u64, i: usize) -> ($typename, u64) {
@@ -1674,6 +1763,35 @@ macro_rules! define_fp_core {
                 }
 
                 subm_inner(a, 0, 0)
+            }
+
+            // For the result of sum of products to work, we need 2*p - 4 to fit into
+            // N words, otherwise we need to do an additional subtraction. This function
+            // computes 2*p - 4 and if an overflow is detected, then a boolean is set
+            // at compile time to ensure an addtional conditional subtraction is performed.
+            const fn sum_of_products_check() -> bool {
+                const fn sub4_inner(a: $typename, cc: u64, i: usize) -> ($typename, u64) {
+                    if i == a.0.len() {
+                        (a, cc)
+                    } else {
+                        let n = if i == 0 { 4 } else { 0 };
+                        let (d, cc) = $typename::sbb(a.0[i], n, cc);
+                        let mut aa = a;
+                        aa.0[i] = d;
+                        sub4_inner(aa, cc, i + 1)
+                    }
+                }
+
+                // Subtract 4 from the modulus, we ignore the borrow here
+                // as it would only be an issue for p = 2, 3 and we assume
+                // p is large.
+                let (r1, _) = sub4_inner(Self::new(Self::MODULUS), 0, 0);
+
+                // Add the modulus to compute 2*p - 4
+                let (r2, b1) = Self::addm(r1);
+
+                // If the addition of the modulus has a carry, then return true
+                b1 == 1
             }
 
             // Add the modulus if mm == -1; return a unchanged with mm == 0

@@ -12,10 +12,10 @@ def fmt_little_u64(res, words):
         num = r[2:]
         new_num = num.zfill(16)
         new_num = new_num.upper()
-        new_num = "0x" + new_num + "u64"
+        new_num = "0x" + new_num
         out.append(new_num)
     while len(out) != words:
-        out.append("0x" + "0" * 16 + "u64")
+        out.append("0x" + "0" * 16)
     return out
 
 def fmt_list(l):
@@ -52,23 +52,27 @@ if __name__ == "__main__":
             nqr = i
             break
 
-    str = f"""
-    // Fp{BITLEN}: a finite field element GF(p) with p = 3 mod 4.
-    // Contents are opaque, all functions are constant-time.
+    output = f"""
+mod fp{BITLEN} {{
+    // Macro input generated with scripts/gen_fp.sage
+
+    // Field modulus
+    const MODULUS: [u64; {words}] = [{MODULUS}];
+
     fp2_rs::define_fp_core!(
         typename = Fp{BITLEN},
-        modulus = [{MODULUS}],
+        modulus = MODULUS,
     );
 
-    // Fp{BITLEN}Ext: a finite field element GF(p^2) with modulus x^2 + 1.
-    // Contents are opaque, all functions are constant-time.
-    fp2_rs::define_fp2_core!(
+    fp2_rs::define_fp2_from_modulus!(
         typename = Fp{BITLEN}Ext,
-        base_field = Fp{BITLEN},
+        base_typename = Fp{BITLEN},
+        modulus = MODULUS,
     );
 
-    fp2_rs::define_fp_tests!(Fp139);
+    fp2_rs::define_fp_tests!(Fp{BITLEN});
     fp2_rs::define_fp2_tests!(Fp{BITLEN}Ext, {nqr});
+}}
     """
 
-    print(str)
+    print(output)

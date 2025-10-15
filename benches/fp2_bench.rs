@@ -1,132 +1,244 @@
 mod bench_util;
 
-macro_rules! define_fp2_benchmarks {
-    ($Fp2:ty) => {
-        use criterion::{black_box, criterion_group, criterion_main, Criterion};
-        use std::time::Duration;
-
-        fn benchmark_add(c: &mut Criterion) {
+macro_rules! define_fp_benchmarks {
+    ($Fq:ty) => {
+        fn benchmark_fp_mul(c: &mut Criterion) {
             let mut rng = crate::bench_util::DRNG::new();
 
-            let x = <$Fp2>::rand(&mut rng);
-            let y = <$Fp2>::rand(&mut rng);
+            let x = <$Fq>::rand(&mut rng);
+            let y = <$Fq>::rand(&mut rng);
 
-            let bench_id = format!(
-                "Benchmarking x + y with char(k) ~2^{}",
-                <$Fp2>::CHAR_BIT_LENGTH
-            );
-            c.bench_function(&bench_id, |b| b.iter(|| black_box(x) + black_box(y)));
-        }
-
-        fn benchmark_sub(c: &mut Criterion) {
-            let mut rng = crate::bench_util::DRNG::new();
-
-            let x = <$Fp2>::rand(&mut rng);
-            let y = <$Fp2>::rand(&mut rng);
-
-            let bench_id = format!(
-                "Benchmarking x - y with char(k) ~2^{}",
-                <$Fp2>::CHAR_BIT_LENGTH
-            );
-            c.bench_function(&bench_id, |b| b.iter(|| black_box(x) - black_box(y)));
-        }
-
-        fn benchmark_mul(c: &mut Criterion) {
-            let mut rng = crate::bench_util::DRNG::new();
-
-            let x = <$Fp2>::rand(&mut rng);
-            let y = <$Fp2>::rand(&mut rng);
-
-            let bench_id = format!(
-                "Benchmarking x * y with char(k) ~2^{}",
-                <$Fp2>::CHAR_BIT_LENGTH
-            );
+            let bench_id = format!("Benchmarking x * y over Fp with {} bits", <$Fq>::BIT_LENGTH);
             c.bench_function(&bench_id, |b| b.iter(|| black_box(x) * black_box(y)));
         }
 
-        fn benchmark_div(c: &mut Criterion) {
+        fn benchmark_sum_of_products(c: &mut Criterion) {
             let mut rng = crate::bench_util::DRNG::new();
 
-            let x = <$Fp2>::rand(&mut rng);
-            let y = <$Fp2>::rand(&mut rng);
+            let x = <$Fq>::rand(&mut rng);
+            let y = <$Fq>::rand(&mut rng);
+            let z = <$Fq>::rand(&mut rng);
+            let w = <$Fq>::rand(&mut rng);
 
             let bench_id = format!(
-                "Benchmarking x / y with char(k) ~2^{}",
-                <$Fp2>::CHAR_BIT_LENGTH
+                "Benchmarking a1*b1 + a2*b2 over Fp with {} bits",
+                <$Fq>::BIT_LENGTH
             );
-            c.bench_function(&bench_id, |b| b.iter(|| black_box(x) / black_box(y)));
+            c.bench_function(&bench_id, |b| {
+                b.iter(|| {
+                    <$Fq>::sum_of_products(
+                        &black_box(x),
+                        &black_box(y),
+                        &black_box(z),
+                        &black_box(w),
+                    )
+                })
+            });
         }
 
-        fn benchmark_invert(c: &mut Criterion) {
+        criterion_group! {
+            name = fp_benchmarks;
+            config = Criterion::default().measurement_time(Duration::from_secs(3));
+            targets = benchmark_fp_mul, benchmark_sum_of_products
+        }
+    };
+}
+
+macro_rules! define_fp2_benchmarks {
+    ($Fq:ty) => {
+        fn benchmark_sop_fp2_mul(c: &mut Criterion) {
             let mut rng = crate::bench_util::DRNG::new();
 
-            let x = <$Fp2>::rand(&mut rng);
+            let x = <$Fq>::rand(&mut rng);
+            let y = <$Fq>::rand(&mut rng);
 
             let bench_id = format!(
-                "Benchmarking 1 / x with char(k) ~2^{}",
-                <$Fp2>::CHAR_BIT_LENGTH
+                "Benchmarking (sum of products) x * y over Fp2 with {} bits",
+                <$Fq>::CHAR_BIT_LENGTH
             );
-            c.bench_function(&bench_id, |b| b.iter(|| black_box(x).invert()));
+            c.bench_function(&bench_id, |b| {
+                b.iter(|| black_box(x).mul_sum_of_products(black_box(y)))
+            });
         }
 
-        fn benchmark_mul_new(c: &mut Criterion) {
+        fn benchmark_school_fp2_mul(c: &mut Criterion) {
             let mut rng = crate::bench_util::DRNG::new();
 
-            let x = <$Fp2>::rand(&mut rng);
-            let y = <$Fp2>::rand(&mut rng);
+            let x = <$Fq>::rand(&mut rng);
+            let y = <$Fq>::rand(&mut rng);
 
             let bench_id = format!(
-                "Benchmarking x * y (new method) with char(k) ~2^{}",
-                <$Fp2>::CHAR_BIT_LENGTH
+                "Benchmarking (schoolbook) x * y over Fp2 with {} bits",
+                <$Fq>::CHAR_BIT_LENGTH
             );
-            c.bench_function(&bench_id, |b| b.iter(|| black_box(x).mul_new(black_box(y))));
-        }
-
-        fn benchmark_mul_old(c: &mut Criterion) {
-            let mut rng = crate::bench_util::DRNG::new();
-
-            let x = <$Fp2>::rand(&mut rng);
-            let y = <$Fp2>::rand(&mut rng);
-
-            let bench_id = format!(
-                "Benchmarking x * y (old method) with char(k) ~2^{}",
-                <$Fp2>::CHAR_BIT_LENGTH
-            );
-            c.bench_function(&bench_id, |b| b.iter(|| black_box(x).mul_old(black_box(y))));
+            c.bench_function(&bench_id, |b| {
+                b.iter(|| black_box(x).mul_schoolbook(black_box(y)))
+            });
         }
 
         criterion_group! {
             name = fp2_benchmarks;
             config = Criterion::default().measurement_time(Duration::from_secs(3));
-            targets = benchmark_add, benchmark_sub, benchmark_mul, benchmark_div, benchmark_invert, benchmark_mul_new, benchmark_mul_old
+            targets = benchmark_sop_fp2_mul, benchmark_school_fp2_mul
         }
     };
 }
-mod bench_fp_251_ext {
-    // Fp251: a finite field element GF(p) with p = 3 mod 4.
-    // Contents are opaque, all functions are constant-time.
-    // Macro input generated with scripts/gen_fp.sage
-    // p = 5*2^248 - 1
+
+mod bench_251 {
+    use criterion::{Criterion, black_box, criterion_group, criterion_main};
+    use std::time::Duration;
+
     static MODULUS: [u64; 4] = [
-        0xFFFFFFFFFFFFFFFF_u64,
-        0xFFFFFFFFFFFFFFFF_u64,
-        0xFFFFFFFFFFFFFFFF_u64,
-        0x04FFFFFFFFFFFFFF_u64,
+        0xFFFFFFFFFFFFFFFF,
+        0xFFFFFFFFFFFFFFFF,
+        0xFFFFFFFFFFFFFFFF,
+        0x04FFFFFFFFFFFFFF,
     ];
 
-    // Fp251Ext: a finite field element GF(p^2) with modulus x^2 + 1.
-    // Contents are opaque, all functions are constant-time.
-    // Macro input generated with scripts/gen_fp.sage
-    fp2::define_fp2_from_modulus!(
-        typename = Fp251Ext,
-        base_typename = Fp251,
-        modulus = MODULUS,
-    );
+    fp2::define_fp2_from_modulus!(typename = Fp2, base_typename = Fp, modulus = MODULUS,);
 
-    define_fp2_benchmarks!(Fp251Ext);
-    criterion_main!(fp2_benchmarks);
+    define_fp_benchmarks!(Fp);
+    define_fp2_benchmarks!(Fp2);
+
+    criterion_main!(fp_benchmarks, fp2_benchmarks);
+}
+
+mod bench_508 {
+    use criterion::{Criterion, black_box, criterion_group, criterion_main};
+    use std::time::Duration;
+
+    static MODULUS: [u64; 8] = [
+        0xFFFFFFFFFFFFFFFFu64,
+        0xFFFFFFFFFFFFFFFFu64,
+        0xFFFFFFFFFFFFFFFFu64,
+        0xFFFFFFFFFFFFFFFFu64,
+        0xFFFFFFFFFFFFFFFFu64,
+        0xFFFFFFFFFFFFFFFFu64,
+        0xFFFFFFFFFFFFFFFFu64,
+        0x107FFFFFFFFFFFFFu64,
+    ];
+
+    fp2::define_fp2_from_modulus!(typename = Fp2, base_typename = Fp, modulus = MODULUS,);
+
+    define_fp_benchmarks!(Fp);
+    define_fp2_benchmarks!(Fp2);
+
+    criterion_main!(fp_benchmarks, fp2_benchmarks);
+}
+
+mod bench_896 {
+    use criterion::{Criterion, black_box, criterion_group, criterion_main};
+    use std::time::Duration;
+
+    static MODULUS: [u64; 14] = [
+        0xFFFFFFFFFFFFFFFF,
+        0xFFFFFFFFFFFFFFFF,
+        0xFFFFFFFFFFFFFFFF,
+        0xFFFFFFFFFFFFFFFF,
+        0xFFFFFFFFFFFFFFFF,
+        0xFFFFFFFFFFFFFFFF,
+        0xFFFFFFFFFFFFFFFF,
+        0xFFFFFFFFFFFFFFFF,
+        0xFFFFFFFFFFFFFFFF,
+        0xFFFFFFFFFFFFFFFF,
+        0xFFFFFFFFFFFFFFFF,
+        0xFFFFFFFFFFFFFFFF,
+        0xFFFFFFFFFFFFFFFF,
+        0xA7FFFFFFFFFFFFFF,
+    ];
+
+    fp2::define_fp2_from_modulus!(typename = Fp2, base_typename = Fp, modulus = MODULUS,);
+
+    define_fp_benchmarks!(Fp);
+    define_fp2_benchmarks!(Fp2);
+
+    criterion_main!(fp_benchmarks, fp2_benchmarks);
+}
+
+mod bench_1008 {
+    use criterion::{Criterion, black_box, criterion_group, criterion_main};
+    use std::time::Duration;
+
+    static MODULUS: [u64; 16] = [
+        0xFFFFFFFFFFFFFFFFu64,
+        0xFFFFFFFFFFFFFFFFu64,
+        0xFFFFFFFFFFFFFFFFu64,
+        0xFFFFFFFFFFFFFFFFu64,
+        0xFFFFFFFFFFFFFFFFu64,
+        0xFFFFFFFFFFFFFFFFu64,
+        0xFFFFFFFFFFFFFFFFu64,
+        0xFFFFFFFFFFFFFFFFu64,
+        0xFFFFFFFFFFFFFFFFu64,
+        0xFFFFFFFFFFFFFFFFu64,
+        0xFFFFFFFFFFFFFFFFu64,
+        0xFFFFFFFFFFFFFFFFu64,
+        0xFFFFFFFFFFFFFFFFu64,
+        0xFFFFFFFFFFFFFFFFu64,
+        0xFFFFFFFFFFFFFFFFu64,
+        0x0000EFFFFFFFFFFFu64,
+    ];
+
+    fp2::define_fp2_from_modulus!(typename = Fp2, base_typename = Fp, modulus = MODULUS,);
+
+    define_fp_benchmarks!(Fp);
+    define_fp2_benchmarks!(Fp2);
+
+    criterion_main!(fp_benchmarks, fp2_benchmarks);
+}
+
+mod bench_1554 {
+    use criterion::{Criterion, black_box, criterion_group, criterion_main};
+    use std::time::Duration;
+
+    static MODULUS: [u64; 25] = [
+        0xFFFFFFFFFFFFFFFFu64,
+        0xFFFFFFFFFFFFFFFFu64,
+        0xFFFFFFFFFFFFFFFFu64,
+        0xFFFFFFFFFFFFFFFFu64,
+        0xFFFFFFFFFFFFFFFFu64,
+        0xFFFFFFFFFFFFFFFFu64,
+        0xFFFFFFFFFFFFFFFFu64,
+        0xFFFFFFFFFFFFFFFFu64,
+        0xFFFFFFFFFFFFFFFFu64,
+        0xFFFFFFFFFFFFFFFFu64,
+        0xFFFFFFFFFFFFFFFFu64,
+        0xFFFFFFFFFFFFFFFFu64,
+        0xFFFFFFFFFFFFFFFFu64,
+        0xFFFFFFFFFFFFFFFFu64,
+        0xFFFFFFFFFFFFFFFFu64,
+        0xFFFFFFFFFFFFFFFFu64,
+        0xFFFFFFFFFFFFFFFFu64,
+        0xFFFFFFFFFFFFFFFFu64,
+        0xFFFFFFFFFFFFFFFFu64,
+        0xFFFFFFFFFFFFFFFFu64,
+        0xFFFFFFFFFFFFFFFFu64,
+        0xFFFFFFFFFFFFFFFFu64,
+        0xFFFFFFFFFFFFFFFFu64,
+        0xFFFFFFFFFFFFFFFFu64,
+        0x0000000000047FFFu64,
+    ];
+
+    fp2::define_fp2_from_modulus!(typename = Fp2, base_typename = Fp, modulus = MODULUS,);
+
+    define_fp_benchmarks!(Fp);
+    define_fp2_benchmarks!(Fp2);
+
+    criterion_main!(fp_benchmarks, fp2_benchmarks);
 }
 
 fn main() {
-    bench_fp_251_ext::fp2_benchmarks();
+    bench_251::fp_benchmarks();
+    bench_251::fp2_benchmarks();
+
+    bench_508::fp_benchmarks();
+    bench_508::fp2_benchmarks();
+
+    bench_896::fp_benchmarks();
+    bench_896::fp2_benchmarks();
+
+    bench_1008::fp_benchmarks();
+    bench_1008::fp2_benchmarks();
+
+    bench_1554::fp_benchmarks();
+    bench_1554::fp2_benchmarks();
 }
