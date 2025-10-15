@@ -16,7 +16,7 @@ default = ["test_macros"]
 test_macros = []
 
 [dependencies]
-rand_core = "0.6"
+rand_core = "0.9"
 
 [dev-dependencies]
 criterion = { version = "0.5" }
