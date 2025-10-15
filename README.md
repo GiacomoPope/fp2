@@ -28,8 +28,8 @@ the base field:
 
 ```rs
 fp2::define_fp2_from_modulus!(
-    typename = Fp2,
-    base_typename = Fp,
+    typename = Fp251Ext,
+    base_typename = Fp251,
     modulus = [0xFFFFFFFFFFFFFFFFu64, 0xFFFFFFFFFFFFFFFFu64, 0xFFFFFFFFFFFFFFFFu64,
 );
 ```
