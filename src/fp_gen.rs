@@ -47,7 +47,7 @@ macro_rules! define_fp_core {
         // 2. Be patient
         //
         // I have gone with option two as it makes the macro input cleaner and most
-        // of the time smaller moduli are used and the compile time is not an issue. 
+        // of the time smaller moduli are used and the compile time is not an issue.
         #[allow(long_running_const_eval)]
         impl $typename {
             // IMPLEMENTATION NOTES
@@ -442,7 +442,7 @@ macro_rules! define_fp_core {
 
             /// Square this value n times in place
             #[inline(always)]
-            pub fn set_xsquare(&mut self, n: u32) {
+            pub fn set_n_square(&mut self, n: u32) {
                 for _ in 0..n {
                     self.set_square();
                 }
@@ -450,9 +450,9 @@ macro_rules! define_fp_core {
 
             /// Square this value n times
             #[inline(always)]
-            pub fn xsquare(self, n: u32) -> Self {
+            pub fn n_square(self, n: u32) -> Self {
                 let mut r = self;
-                r.set_xsquare(n);
+                r.set_n_square(n);
                 r
             }
 
@@ -1031,7 +1031,7 @@ macro_rules! define_fp_core {
             pub fn set_sqrt(&mut self) -> u32 {
                 // Compute x^((p+1)/4)
                 let x = *self;
-                self.set_modpow_pubexp(&Self::SQRT_EXP);
+                self.set_pow_pubexp(&Self::SQRT_EXP);
 
                 // Check whether the square of the result equals the input and zeroize
                 // on failure
@@ -1072,16 +1072,16 @@ macro_rules! define_fp_core {
 
                 if Self::MODULUS[0] & 7 == 7 {
                     // Compute x^((p+1)/8)
-                    self.set_modpow_pubexp(&Self::FOURTH_ROOT_EXP);
+                    self.set_pow_pubexp(&Self::FOURTH_ROOT_EXP);
                 } else {
                     // Fall back to the much slower, general case of two sqrt.
-                    self.set_modpow_pubexp(&Self::SQRT_EXP);
-                    self.set_modpow_pubexp(&Self::SQRT_EXP);
+                    self.set_pow_pubexp(&Self::SQRT_EXP);
+                    self.set_pow_pubexp(&Self::SQRT_EXP);
                 }
 
                 // Check whether the square of the result equals the input and zeroize
                 // on failure
-                let r = self.xsquare(2).equals(&x);
+                let r = self.n_square(2).equals(&x);
                 let rw = (r as u64) | ((r as u64) << 32);
                 for i in 0..Self::N {
                     self.0[i] &= rw;
@@ -1105,9 +1105,9 @@ macro_rules! define_fp_core {
                 (x, r)
             }
 
-            // Raise this value to the provided exponent. The exponent is non-zero
-            // and is public. The exponent is encoded over N 64-bit limbs.
-            fn set_modpow_pubexp(&mut self, e: &[u64; Self::N]) {
+            /// Raise this value to the provided exponent. The exponent is non-zero
+            /// and is public. The exponent is encoded over N 64-bit limbs.
+            pub fn set_pow_pubexp(&mut self, e: &[u64; Self::N]) {
                 // Make a 4-bit window; win[i] contains x^(i+1)
                 let mut win = [Self::ZERO; 15];
                 win[0] = *self;
@@ -1124,7 +1124,7 @@ macro_rules! define_fp_core {
                     let ew = e[i];
                     for j in (0..16).rev() {
                         if z {
-                            self.set_xsquare(4);
+                            self.set_n_square(4);
                         }
                         let c = ((ew >> (j << 2)) & 0x0F) as usize;
                         if c != 0 {
@@ -1140,6 +1140,14 @@ macro_rules! define_fp_core {
                 if !z {
                     *self = Self::ONE;
                 }
+            }
+
+            /// Return this value to the provided exponent. The exponent is non-zero
+            /// and is public. The exponent is encoded over N 64-bit limbs.
+            pub fn pow_pubexp(self, e: &[u64; Self::N]) -> Self {
+                let mut r = self;
+                r.set_pow_pubexp(e);
+                r
             }
 
             /// Raise this value to the power e. Exponent e is encoded in
@@ -1992,7 +2000,7 @@ macro_rules! define_fp_core {
             const fn const_sqrt_exp() -> [u64; Self::N] {
                 let mut d = [0u64; Self::N];
                 let mut dd = 0u64;
-                let mut cc = 1u64;  // start with carry=1 to compute (p+1)/4
+                let mut cc = 1u64; // start with carry=1 to compute (p+1)/4
                 let mut i = 0;
                 while i < Self::N {
                     let (x, c) = Self::adc(Self::MODULUS[i], 0, cc);
@@ -2349,6 +2357,7 @@ macro_rules! define_fp_core {
 
         impl $crate::traits::Fp for $typename {
             // Reexport constants for base field Trait
+            const N: usize = Self::N;
             const ENCODED_LENGTH: usize = Self::ENCODED_LENGTH;
             const ZERO: Self = Self::ZERO;
             const ONE: Self = Self::ONE;
@@ -2431,6 +2440,9 @@ macro_rules! define_fp_core {
             fn set_square(&mut self) {
                 self.set_square()
             }
+            fn set_n_square(&mut self, n: u32) {
+                self.set_n_square(n)
+            }
             fn set_invert(&mut self) {
                 self.set_invert()
             }
@@ -2446,12 +2458,17 @@ macro_rules! define_fp_core {
             fn set_pow_u64_vartime(&mut self, e: u64) {
                 self.set_pow_u64_vartime(e)
             }
-
+            fn set_pow_pubexp(&mut self, e: &[u64; Self::N]) {
+                self.set_pow_pubexp(e)
+            }
             fn mul_small(self, k: i32) -> Self {
                 self.mul_small(k)
             }
             fn square(self) -> Self {
                 self.square()
+            }
+            fn n_square(self, n: u32) -> Self {
+                self.n_square(n)
             }
             fn invert(self) -> Self {
                 self.invert()
@@ -2462,13 +2479,15 @@ macro_rules! define_fp_core {
             fn pow_ext(self, e: &[u8], eoff: usize, ebitlen: usize) -> Self {
                 self.pow_ext(e, eoff, ebitlen)
             }
-            fn pow_u64(&mut self, e: u64, ebitlen: usize) -> Self {
+            fn pow_u64(self, e: u64, ebitlen: usize) -> Self {
                 self.pow_u64(e, ebitlen)
             }
-            fn pow_u64_vartime(&mut self, e: u64) -> Self {
+            fn pow_u64_vartime(self, e: u64) -> Self {
                 self.pow_u64_vartime(e)
             }
-
+            fn pow_pubexp(self, e: &[u64; Self::N]) -> Self {
+                self.pow_pubexp(e)
+            }
             fn set_sqrt(&mut self) -> u32 {
                 self.set_sqrt()
             }

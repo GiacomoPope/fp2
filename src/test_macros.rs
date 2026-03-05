@@ -266,6 +266,29 @@ macro_rules! define_fp_tests {
             assert_eq!(z.square().is_zero(), u32::MAX, "0^2 should be zero");
         }
 
+        /// N-squaring: `n_square(n)` matches repeated `square()` n times.
+        #[test]
+        fn fp_test_n_square() {
+            // Random elements.
+            for i in 0..100 {
+                let a = <$Fp>::decode_reduce(&fp_test_vector(i));
+                for n in [1u32, 2, 5, 10, 20] {
+                    let mut b = a;
+                    for _ in 0..n {
+                        b = b.square();
+                    }
+                    let c = a.n_square(n);
+                    assert_eq!(c.equals(&b), u32::MAX, "iter {i}: n_square(n) failed");
+                }
+            }
+            // 0^(2^n) == 0.
+            let z = <$Fp>::decode_reduce(&fp_zero_vector());
+            for n in [1u32, 2, 5] {
+                let c = z.n_square(n);
+                assert_eq!(c.is_zero(), u32::MAX, "n={n}: 0^(2^n) should be zero");
+            }
+        }
+
         /// Halving: `half(a) + half(a) == a mod p`.
         #[test]
         fn fp_test_half() {
@@ -541,6 +564,34 @@ macro_rules! define_fp_tests {
             let z = <$Fp>::ZERO;
             assert_eq!(
                 z.pow(&exp_bytes, ebitlen).is_zero(),
+                u32::MAX,
+                "0^(p-1) should be zero under the field convention"
+            );
+        }
+
+        #[test]
+        fn fp_test_pow_fermat_pubexp() {
+            // Compute p-1 as a little-endian byte array.
+            let mut pm1 = <$Fp>::MODULUS;
+            pm1[0] -= 1;
+
+            // p-1 has the same bit length as p for all odd primes p.
+            let ebitlen = <$Fp>::BIT_LENGTH;
+
+            // Random non-zero elements must satisfy Fermat's little theorem.
+            for i in 0..20 {
+                let a = <$Fp>::decode_reduce(&fp_test_vector(i));
+                assert_eq!(
+                    a.pow_pubexp(&pm1).equals(&<$Fp>::ONE),
+                    u32::MAX,
+                    "iter {i}: a^(p-1) != 1 (Fermat's little theorem)"
+                );
+            }
+
+            // Zero: the field convention defines 0^(p-1) as zero, not one.
+            let z = <$Fp>::ZERO;
+            assert_eq!(
+                z.pow_pubexp(&pm1).is_zero(),
                 u32::MAX,
                 "0^(p-1) should be zero under the field convention"
             );
@@ -1062,6 +1113,29 @@ macro_rules! define_fp2_tests {
             // 0^2 == 0.
             let z = <$Fp2>::decode_reduce(&fp2_zero_vector());
             assert_eq!(z.square().is_zero(), u32::MAX, "0^2 should be zero");
+        }
+
+        /// N-squaring: `n_square(n)` matches repeated `square()` n times.
+        #[test]
+        fn fp2_test_n_square() {
+            // Random elements.
+            for i in 0..100 {
+                let a = <$Fp2>::decode_reduce(&fp2_test_vector(i));
+                for n in [1u32, 2, 5, 10, 20] {
+                    let mut b = a;
+                    for _ in 0..n {
+                        b = b.square();
+                    }
+                    let c = a.n_square(n);
+                    assert_eq!(c.equals(&b), u32::MAX, "iter {i}: n_square(n) failed");
+                }
+            }
+            // 0^(2^n) == 0.
+            let z = <$Fp2>::decode_reduce(&fp2_zero_vector());
+            for n in [1u32, 2, 5] {
+                let c = z.n_square(n);
+                assert_eq!(c.is_zero(), u32::MAX, "n={n}: 0^(2^n) should be zero");
+            }
         }
 
         /// Division / inversion: round-trip and zero-divisor handling.
