@@ -20,6 +20,9 @@ pub trait Fp:
     /// The length of the encoded representation of the finite field element.
     const ENCODED_LENGTH: usize;
 
+    /// The number of limbs needed to represent the finite field element.
+    const N: usize;
+
     /// Predefined constant element representing the value 0.
     const ZERO: Self;
 
@@ -96,6 +99,9 @@ pub trait Fp:
     /// Replace this value with its square.
     fn set_square(&mut self);
 
+    /// Square this value n times in place
+    fn set_n_square(&mut self, n: u32);
+
     /// Replace this value with its inverse.
     fn set_invert(&mut self);
 
@@ -114,6 +120,10 @@ pub trait Fp:
     /// size (`ebitlen`) is considered non-secret.
     fn set_pow_u64(&mut self, e: u64, ebitlen: usize);
 
+    // Raise this value to the provided exponent. The exponent is non-zero
+    // and is public. The exponent is encoded over N 64-bit limbs.
+    fn set_pow_pubexp(&mut self, e: &[u64; Self::N]);
+
     /// Raise this value to the power `e`. The exponent is considered
     /// non-secret.
     fn set_pow_u64_vartime(&mut self, e: u64);
@@ -123,6 +133,9 @@ pub trait Fp:
 
     /// Compute the square of this value.
     fn square(self) -> Self;
+
+    /// Compute the square of this value n times.
+    fn n_square(self, n: u32) -> Self;
 
     /// Compute the inverse of this value
     fn invert(self) -> Self;
@@ -141,11 +154,15 @@ pub trait Fp:
     /// MUST be at most `ebitlen`. This is constant-time for both the
     /// base value (`self`) and the exponent (`e`); the exponent maximum
     /// size (`ebitlen`) is considered non-secret.
-    fn pow_u64(&mut self, e: u64, ebitlen: usize) -> Self;
+    fn pow_u64(self, e: u64, ebitlen: usize) -> Self;
 
     /// Return this value to the power e. The exponent is considered
     /// non-secret.
-    fn pow_u64_vartime(&mut self, e: u64) -> Self;
+    fn pow_u64_vartime(self, e: u64) -> Self;
+
+    // Return this value to the provided exponent. The exponent is non-zero
+    // and is public. The exponent is encoded over N 64-bit limbs.
+    fn pow_pubexp(self, e: &[u64; Self::N]) -> Self;
 
     /// Set this value to its square root. Returned value is `0xFFFFFFFF` if
     /// the operation succeeded (value was indeed a quadratic residue), or

@@ -278,6 +278,22 @@ macro_rules! define_fp2_from_type {
                 r
             }
 
+            /// Square this value n times in place
+            #[inline]
+            pub fn set_n_square(&mut self, n: u32) {
+                for _ in 0..n {
+                    self.set_square();
+                }
+            }
+
+            /// Square this value n times
+            #[inline]
+            pub fn n_square(self, n: u32) -> Self {
+                let mut r = self;
+                r.set_n_square(n);
+                r
+            }
+
             #[inline]
             fn set_half(&mut self) {
                 self.x0.set_half();
@@ -709,6 +725,48 @@ macro_rules! define_fp2_from_type {
                 x
             }
 
+            /// Raise this value to the power e. Exponent e is encoded in
+            /// unsigned little-endian convention over exactly ebitlen bits.
+            fn set_pow_limbs(&mut self, e: &[u64], ebitlen: usize) {
+                self.set_pow_ext_limbs(e, 0, ebitlen);
+            }
+
+            /// Raise this value to the power e. Exponent e is encoded in
+            /// unsigned little-endian convention, over exactly ebitlen bits,
+            /// and starting at the bit offset eoff.
+            fn set_pow_ext_limbs(&mut self, e: &[u64], eoff: usize, ebitlen: usize) {
+                let x = *self;
+                *self = Self::ONE;
+                for i in (eoff..(eoff + ebitlen)).rev() {
+                    let y = &*self * &x;
+                    let ctl = (((e[i >> 6] >> (i & 63)) as u32) & 1).wrapping_neg();
+                    self.set_cond(&y, ctl);
+                    if i == eoff {
+                        break;
+                    }
+                    self.set_square();
+                }
+            }
+
+            /// Return this value to the power e (as a new element). Exponent e
+            /// is encoded in unsigned little-endian convention over exactly
+            /// ebitlen bits.
+            fn pow_limbs(self, e: &[u64], ebitlen: usize) -> Self {
+                let mut x = self;
+                x.set_pow_limbs(e, ebitlen);
+                x
+            }
+
+            /// Return this value to the power e (as a new element). Exponent e
+            /// is encoded in unsigned little-endian convention over exactly
+            /// ebitlen bits, and starting at the bit offset eoff.
+            fn pow_ext_limbs(self, e: &[u64], eoff: usize, ebitlen: usize) -> Self {
+                let mut x = self;
+                x.set_pow_ext_limbs(e, eoff, ebitlen);
+                x
+            }
+
+            /// Enocde this value into Self::ENCODED_LENGTH bytes
             fn encode(self) -> [u8; Self::ENCODED_LENGTH] {
                 let mut r = [0u8; Self::ENCODED_LENGTH];
                 r[..<$Fp>::ENCODED_LENGTH].copy_from_slice(&self.x0.encode());
@@ -716,6 +774,8 @@ macro_rules! define_fp2_from_type {
                 r
             }
 
+            /// Decode this value from bytes and return (val, u32::MAX) if the input decodes
+            /// to a canoncial value in [0, p-1], otherwise return (0, 0)
             fn decode(buf: &[u8]) -> (Self, u32) {
                 if buf.len() != Self::ENCODED_LENGTH {
                     return (Self::ZERO, 0);
@@ -831,6 +891,51 @@ macro_rules! define_fp2_from_type {
                         }
                     }
                 }
+            }
+
+            /// Raise this value to the provided exponent. The exponent is non-zero
+            /// and is public. The exponent is encoded over N 64-bit limbs.
+            pub fn set_pow_pubexp(&mut self, e: &[u64; <$Fp>::N]) {
+                // Make a 4-bit window; win[i] contains x^(i+1)
+                let mut win = [Self::ZERO; 15];
+                win[0] = *self;
+                for i in 1..8 {
+                    let j = i * 2;
+                    win[j - 1] = win[i - 1].square();
+                    win[j] = win[j - 1] * win[0];
+                }
+
+                // Explore 4-bit chunks of the exponent, high to low. Skip leading
+                // chunks of value 0.
+                let mut z = false;
+                for i in (0..<$Fp>::N).rev() {
+                    let ew = e[i];
+                    for j in (0..16).rev() {
+                        if z {
+                            self.set_n_square(4);
+                        }
+                        let c = ((ew >> (j << 2)) & 0x0F) as usize;
+                        if c != 0 {
+                            if z {
+                                self.set_mul(&win[c - 1]);
+                            } else {
+                                z = true;
+                                *self = win[c - 1];
+                            }
+                        }
+                    }
+                }
+                if !z {
+                    *self = Self::ONE;
+                }
+            }
+
+            /// Return this value to the provided exponent. The exponent is non-zero
+            /// and is public. The exponent is encoded over N 64-bit limbs.
+            pub fn pow_pubexp(self, e: &[u64; <$Fp>::N]) -> Self {
+                let mut r = self;
+                r.set_pow_pubexp(e);
+                r
             }
 
             /// Return this value to the power e. The exponent is considered
@@ -1350,6 +1455,7 @@ macro_rules! define_fp2_from_type {
 
         impl $crate::traits::Fp for $typename {
             // Reexport constants for base field Trait
+            const N: usize = <$Fp>::N;
             const ENCODED_LENGTH: usize = Self::ENCODED_LENGTH;
             const ZERO: Self = Self::ZERO;
             const ONE: Self = Self::ONE;
@@ -1426,6 +1532,9 @@ macro_rules! define_fp2_from_type {
             fn set_square(&mut self) {
                 self.set_square()
             }
+            fn set_n_square(&mut self, n: u32) {
+                self.set_n_square(n)
+            }
             fn set_invert(&mut self) {
                 self.set_invert()
             }
@@ -1441,12 +1550,17 @@ macro_rules! define_fp2_from_type {
             fn set_pow_u64_vartime(&mut self, e: u64) {
                 self.set_pow_u64_vartime(e)
             }
-
+            fn set_pow_pubexp(&mut self, e: &[u64; Self::N]) {
+                self.set_pow_pubexp(e)
+            }
             fn mul_small(self, k: i32) -> Self {
                 self.mul_small(k)
             }
             fn square(self) -> Self {
                 self.square()
+            }
+            fn n_square(self, n: u32) -> Self {
+                self.n_square(n)
             }
             fn invert(self) -> Self {
                 self.invert()
@@ -1457,13 +1571,15 @@ macro_rules! define_fp2_from_type {
             fn pow_ext(self, e: &[u8], eoff: usize, ebitlen: usize) -> Self {
                 self.pow_ext(e, eoff, ebitlen)
             }
-            fn pow_u64(&mut self, e: u64, ebitlen: usize) -> Self {
+            fn pow_u64(self, e: u64, ebitlen: usize) -> Self {
                 self.pow_u64(e, ebitlen)
             }
-            fn pow_u64_vartime(&mut self, e: u64) -> Self {
+            fn pow_u64_vartime(self, e: u64) -> Self {
                 self.pow_u64_vartime(e)
             }
-
+            fn pow_pubexp(self, e: &[u64; Self::N]) -> Self {
+                self.pow_pubexp(e)
+            }
             fn set_sqrt(&mut self) -> u32 {
                 self.set_sqrt()
             }
