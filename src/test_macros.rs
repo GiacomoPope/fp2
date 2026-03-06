@@ -853,6 +853,22 @@ macro_rules! define_fp_tests {
             assert_eq!(r, u32::MAX, "fourth_root(0) should succeed");
             assert_eq!(c.is_zero(), u32::MAX, "fourth_root(0) should return zero");
         }
+
+        #[test]
+        fn test_fp_trait_static_methods() {
+            use fp2::traits::Fp;
+            fn via_trait<F: Fp>() {
+                let _ = F::from_i32(1);
+                let _ = F::from_u32(1);
+                let _ = F::from_i64(1);
+                let _ = F::from_u64(1);
+                let mut elems = [F::ONE, F::TWO, F::THREE];
+                F::batch_invert(&mut elems);
+                let _ = F::select(&F::ZERO, &F::ONE, 0);
+                let _ = F::decode(&[0u8; 8]);
+                let _ = F::decode_reduce(&[0u8; 8]);
+            }
+        }
     };
 } // End of macro: define_fp_tests
 
@@ -1660,6 +1676,21 @@ macro_rules! define_fp2_tests {
             assert_ne!((two + one).equals(&three), 0, "2+1 == THREE");
             assert_ne!((three + one).equals(&four), 0, "3+1 == FOUR");
             assert_ne!((minus_one * minus_one).equals(&one), 0, "(-1)*(-1) == 1");
+        }
+
+        #[test]
+        fn test_fp2_trait_static_methods() {
+            use fp2::traits::Fp2;
+            fn via_trait<F: Fp2>() {
+                let _ = F::from_i32_pair(1, 2);
+                let _ = F::from_u32_pair(1, 2);
+                let _ = F::from_i64_pair(1, 2);
+                let _ = F::from_u64_pair(1, 2);
+                // Check MINUS_ZETA is actually the negation of ZETA
+                assert_eq!((F::ZETA + F::MINUS_ZETA).is_zero(), u32::MAX);
+                // Check ZETA^2 == -1
+                assert_eq!(F::ZETA.square().equals(&F::MINUS_ONE), u32::MAX);
+            }
         }
     };
 } // End of macro: define_fp2_tests

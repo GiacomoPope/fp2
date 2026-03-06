@@ -245,9 +245,7 @@ pub trait Fp:
 
     /// Decode the provided bytes into a field element. The source slice
     /// can have arbitrary length; the bytes are interpreted with the
-    /// unsigned little-endian convention (no sign bit), with the first half
-    /// of the bytes corresponding to x0 and the latter half to x1. For each
-    /// resulting integer, the result is reduced modulo the field modulus p.
+    /// unsigned little-endian convention (no sign bit).
     /// By definition, this function does not enforce canonicality of the source
     /// value.
     fn decode_reduce(buf: &[u8]) -> Self;

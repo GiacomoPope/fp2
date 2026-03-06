@@ -954,7 +954,7 @@ macro_rules! define_fp2_from_type {
                 (self.x0.hashcode() << 1) | (self.x1.hashcode() & 1)
             }
 
-            fn batch_invert(xx: &mut [Self]) {
+            pub fn batch_invert(xx: &mut [Self]) {
                 // We use Montgomery's trick:
                 //   1/u = v*(1/(u*v))
                 //   1/v = u*(1/(u*v))
@@ -1466,22 +1466,22 @@ macro_rules! define_fp2_from_type {
 
             /// Return the value x + i*0 for a given integer x of type `i32`.
             fn from_i32(x: i32) -> Self {
-                Self::from_i32(x)
+                <$typename>::from_i32(x)
             }
 
             /// Return the value x + i*0 for a given integer x of type `u32`.
             fn from_u32(x: u32) -> Self {
-                Self::from_u32(x)
+                <$typename>::from_u32(x)
             }
 
             /// Return the value x + i*0 for a given integer x of type `i64`.
             fn from_i64(x: i64) -> Self {
-                Self::from_i64(x)
+                <$typename>::from_i64(x)
             }
 
             /// Return the value x + i*0 for a given integer x of type `u64`.
             fn from_u64(x: u64) -> Self {
-                Self::from_u64(x)
+                <$typename>::from_u64(x)
             }
 
             fn is_zero(self) -> u32 {
@@ -1601,7 +1601,7 @@ macro_rules! define_fp2_from_type {
                 self.is_square()
             }
             fn batch_invert(xx: &mut [Self]) {
-                Self::batch_invert(xx)
+                <$typename>::batch_invert(xx)
             }
 
             fn set_select(&mut self, a: &Self, b: &Self, ctl: u32) {
@@ -1614,27 +1614,27 @@ macro_rules! define_fp2_from_type {
                 self.set_condneg(ctl)
             }
             fn select(a: &Self, b: &Self, ctl: u32) -> Self {
-                Self::select(a, b, ctl)
+                <$typename>::select(a, b, ctl)
             }
             fn condswap(a: &mut Self, b: &mut Self, ctl: u32) {
-                Self::condswap(a, b, ctl)
+                <$typename>::condswap(a, b, ctl)
             }
 
             fn encode(self) -> [u8; Self::ENCODED_LENGTH] {
                 self.encode()
             }
             fn decode(buf: &[u8]) -> (Self, u32) {
-                Self::decode(buf)
+                <$typename>::decode(buf)
             }
             fn decode_reduce(buf: &[u8]) -> Self {
-                Self::decode_reduce(buf)
+                <$typename>::decode_reduce(buf)
             }
 
             fn set_rand<R: ::rand_core::CryptoRng + ::rand_core::RngCore>(&mut self, rng: &mut R) {
                 self.set_rand(rng)
             }
             fn rand<R: ::rand_core::CryptoRng + ::rand_core::RngCore>(rng: &mut R) -> Self {
-                Self::rand(rng)
+                <$typename>::rand(rng)
             }
 
             fn hashcode(self) -> u64 {
@@ -1645,26 +1645,26 @@ macro_rules! define_fp2_from_type {
         impl $crate::traits::Fp2 for $typename {
             // Reexport constants for Trait
             const ZETA: Self = Self::ZETA;
-            const MINUS_ZETA: Self = Self::ZETA;
+            const MINUS_ZETA: Self = Self::MINUS_ZETA;
 
             /// Return the value x0 + i*x1 for a given two integers of type `i32`.
             fn from_i32_pair(x0: i32, x1: i32) -> Self {
-                Self::from_i32_pair(x0, x1)
+                <$typename>::from_i32_pair(x0, x1)
             }
 
             /// Return the value x0 + i*x1 for a given two integers of type `u32`.
             fn from_u32_pair(x0: u32, x1: u32) -> Self {
-                Self::from_u32_pair(x0, x1)
+                <$typename>::from_u32_pair(x0, x1)
             }
 
             /// Return the value x0 + i*x1 for a given two integers of type `i64`.
             fn from_i64_pair(x0: i64, x1: i64) -> Self {
-                Self::from_i64_pair(x0, x1)
+                <$typename>::from_i64_pair(x0, x1)
             }
 
             /// Return the value x0 + i*x1 for a given two integers of type `u64`.
             fn from_u64_pair(x0: u64, x1: u64) -> Self {
-                Self::from_u64_pair(x0, x1)
+                <$typename>::from_u64_pair(x0, x1)
             }
 
             /// Set the "real" component of self to an integer of type `i32` in place.
