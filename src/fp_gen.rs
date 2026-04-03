@@ -1017,9 +1017,9 @@ macro_rules! define_fp_core {
                 self.set_div(&r);
             }
 
-            pub fn invert(&self) -> Self {
+            pub fn invert(self) -> Self {
                 let mut r = Self::ONE;
-                r.set_div(self);
+                r.set_div(&self);
                 r
             }
 

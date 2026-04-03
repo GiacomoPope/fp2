@@ -857,7 +857,7 @@ macro_rules! define_fp_tests {
         #[test]
         fn test_fp_trait_static_methods() {
             use fp2::traits::Fp;
-            fn via_trait<F: Fp>() {
+            fn via_trait<F: Fp>(x: F, y: F) {
                 let _ = F::from_i32(1);
                 let _ = F::from_u32(1);
                 let _ = F::from_i64(1);
@@ -867,7 +867,15 @@ macro_rules! define_fp_tests {
                 let _ = F::select(&F::ZERO, &F::ONE, 0);
                 let _ = F::decode(&[0u8; 8]);
                 let _ = F::decode_reduce(&[0u8; 8]);
+                // instance methods
+                let _ = x.invert();
+                let inv = x.invert();
+                assert_eq!((inv * x).equals(&F::ONE), 0xFFFFFFFF);
+                let (root, ok) = x.square().sqrt();
+                assert_eq!(ok, 0xFFFFFFFF);
+                assert_eq!(root.square().equals(&x.square()), 0xFFFFFFFF);
             }
+            via_trait(<$Fp>::from_u32(3), <$Fp>::from_u32(7));
         }
     };
 } // End of macro: define_fp_tests
@@ -1681,16 +1689,51 @@ macro_rules! define_fp2_tests {
         #[test]
         fn test_fp2_trait_static_methods() {
             use fp2::traits::Fp2;
-            fn via_trait<F: Fp2>() {
+            fn via_trait<F: Fp2>(x: F, y: F) {
+                // Static methods
                 let _ = F::from_i32_pair(1, 2);
                 let _ = F::from_u32_pair(1, 2);
                 let _ = F::from_i64_pair(1, 2);
                 let _ = F::from_u64_pair(1, 2);
-                // Check MINUS_ZETA is actually the negation of ZETA
+
+                // Constants
                 assert_eq!((F::ZETA + F::MINUS_ZETA).is_zero(), u32::MAX);
-                // Check ZETA^2 == -1
                 assert_eq!(F::ZETA.square().equals(&F::MINUS_ONE), u32::MAX);
+
+                // Instance methods unique to Fp2 trait
+                let _ = x.conjugate();
+                let _ = x.is_square_base_field();
+
+                // invert via trait dispatch (the bug we just fixed in Fp)
+                let inv = x.invert();
+                assert_eq!((inv * x).equals(&F::ONE), u32::MAX);
+
+                // conjugate is its own inverse
+                assert_eq!(x.conjugate().conjugate().equals(&x), u32::MAX);
+
+                // set_conjugate matches conjugate
+                let mut c = x;
+                c.set_conjugate();
+                assert_eq!(c.equals(&x.conjugate()), u32::MAX);
+
+                // sqrt round-trip
+                let (root, ok) = x.square().sqrt();
+                assert_eq!(ok, u32::MAX);
+                assert_eq!(root.square().equals(&x.square()), u32::MAX);
+
+                // fourth_root round-trip
+                let x4 = x.square().square();
+                let (root, ok) = x4.fourth_root();
+                assert_eq!(ok, u32::MAX);
+                assert_eq!(root.square().square().equals(&x4), u32::MAX);
+
+                // set_x0_small / set_x1_small
+                let mut c = x;
+                c.set_x0_small(1);
+                c.set_x1_small(0);
+                assert_eq!(c.equals(&F::ONE), u32::MAX);
             }
+            via_trait(<$Fp2>::from_u32_pair(3, 7), <$Fp2>::from_u32_pair(5, 11));
         }
     };
 } // End of macro: define_fp2_tests
