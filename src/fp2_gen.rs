@@ -161,6 +161,24 @@ macro_rules! define_fp2_from_type {
                 self.x0.is_zero() & self.x1.is_zero()
             }
 
+            /// Return the x0 value such that self = x0 + i*x1
+            #[inline]
+            pub fn x0(self) -> $Fp {
+                self.x0
+            }
+
+            /// Return the x0 value such that self = x0 + i*x1
+            #[inline]
+            pub fn x1(self) -> $Fp {
+                self.x1
+            }
+
+            /// Return the x0 and x1 values such that self = x0 + i*x1
+            #[inline]
+            pub fn xi(self) -> ($Fp, $Fp) {
+                (self.x0, self.x1)
+            }
+
             #[inline]
             fn equals(self, rhs: &Self) -> u32 {
                 self.x0.equals(&rhs.x0) & self.x1.equals(&rhs.x1)
@@ -1643,9 +1661,26 @@ macro_rules! define_fp2_from_type {
         }
 
         impl $crate::traits::Fp2 for $typename {
+            type BaseField = $Fp;
+
             // Reexport constants for Trait
             const ZETA: Self = Self::ZETA;
             const MINUS_ZETA: Self = Self::MINUS_ZETA;
+
+            /// Return the x0 value such that self = x0 + i*x1
+            fn x0(self) -> $Fp {
+                self.x0()
+            }
+
+            /// Return the x1 value such that self = x0 + i*x1
+            fn x1(self) -> $Fp {
+                self.x1()
+            }
+
+            /// Return the x0 and x1 values such that self = x0 + i*x1
+            fn xi(self) -> ($Fp, $Fp) {
+                self.xi()
+            }
 
             /// Return the value x0 + i*x1 for a given two integers of type `i32`.
             fn from_i32_pair(x0: i32, x1: i32) -> Self {

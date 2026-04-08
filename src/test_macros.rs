@@ -1669,6 +1669,16 @@ macro_rules! define_fp2_tests {
             );
         }
 
+        #[test]
+        fn test_fp2_xi_decomposition() {
+            let y = <$Fp2>::from_u32_pair(123, 345);
+            let (y0, y1) = y.xi();
+            assert_eq!(y.x0.equals(&y0), u32::MAX);
+            assert_eq!(y.x1.equals(&y1), u32::MAX);
+            assert_eq!(y.x0.equals(&y.x0()), u32::MAX);
+            assert_eq!(y.x1.equals(&y.x1()), u32::MAX);
+        }
+
         /// Predefined constants: arithmetic identities.
         #[test]
         fn fp2_test_constants() {

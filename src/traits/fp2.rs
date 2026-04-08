@@ -4,6 +4,8 @@ use super::Fp;
 
 /// Trait for Finite field arithmetic for the extension field GF(p^2) with modulus x^2 + 1.
 pub trait Fp2: Fp {
+    type BaseField: Fp;
+
     /// Predefined constant element representing the value 0 + i such that
     /// i^2 = -1, a fourth-root of unity.
     const ZETA: Self;
@@ -30,7 +32,16 @@ pub trait Fp2: Fp {
     /// Return the value x0 + i*x1 for a given two integers of type `u64`.
     fn from_u64_pair(x0: u64, x1: u64) -> Self;
 
-    /// Negate the imaginary pary of this value
+    /// Return the x0 value such that self = x0 + i*x1
+    fn x0(self) -> Self::BaseField;
+
+    /// Return the x1 value such that self = x0 + i*x1
+    fn x1(self) -> Self::BaseField;
+
+    /// Return the x0 and x1 values such that self = x0 + i*x1
+    fn xi(self) -> (Self::BaseField, Self::BaseField);
+
+    /// Negate the imaginary part of this value
     fn set_conjugate(&mut self);
 
     /// Compute the complex conjugate of the value a + i*b, i.e. a - i*b.
