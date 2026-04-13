@@ -280,12 +280,12 @@ macro_rules! define_fp2_from_type {
                 $crate::define_fp2_from_type!(@set_mul_products $flag, $Fp, self, other);
             }
 
-            #[inline]
+            #[inline(always)]
             pub fn set_mul(&mut self, other: &Self) {
                 $crate::define_fp2_from_type!(@set_mul $flag, $Fp, self, other);
             }
 
-            #[inline]
+            #[inline(always)]
             fn set_square(&mut self) {
                 // (x0 + i*x1)^2 = (x0^2 - x1^2) + 2*i*(x0*x1)
                 //               = (x0 + x1)*(x0 - x1) + i*(2*x0*x1)
