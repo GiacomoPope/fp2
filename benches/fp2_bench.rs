@@ -54,7 +54,7 @@ macro_rules! define_fp2_benchmarks {
 
             let bench_id = format!(
                 "Benchmarking (sum of products) x * y over Fp2 with {} bits",
-                <$Fq>::CHAR_BIT_LENGTH
+                <$Fq>::BIT_LENGTH
             );
             c.bench_function(&bench_id, |b| {
                 b.iter(|| black_box(x).mul_sum_of_products(black_box(y)))
@@ -69,7 +69,7 @@ macro_rules! define_fp2_benchmarks {
 
             let bench_id = format!(
                 "Benchmarking (schoolbook) x * y over Fp2 with {} bits",
-                <$Fq>::CHAR_BIT_LENGTH
+                <$Fq>::BIT_LENGTH
             );
             c.bench_function(&bench_id, |b| {
                 b.iter(|| black_box(x).mul_schoolbook(black_box(y)))

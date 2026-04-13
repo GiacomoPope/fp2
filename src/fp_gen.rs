@@ -2357,14 +2357,15 @@ macro_rules! define_fp_core {
 
         impl $crate::traits::Fp for $typename {
             // Reexport constants for base field Trait
-            const N: usize = Self::N;
-            const ENCODED_LENGTH: usize = Self::ENCODED_LENGTH;
-            const ZERO: Self = Self::ZERO;
-            const ONE: Self = Self::ONE;
-            const TWO: Self = Self::TWO;
-            const THREE: Self = Self::THREE;
-            const FOUR: Self = Self::FOUR;
-            const MINUS_ONE: Self = Self::MINUS_ONE;
+            const N: usize = <$typename>::N;
+            const BIT_LENGTH: usize = <$typename>::BIT_LENGTH;
+            const ENCODED_LENGTH: usize = <$typename>::ENCODED_LENGTH;
+            const ZERO: Self = <$typename>::ZERO;
+            const ONE: Self = <$typename>::ONE;
+            const TWO: Self = <$typename>::TWO;
+            const THREE: Self = <$typename>::THREE;
+            const FOUR: Self = <$typename>::FOUR;
+            const MINUS_ONE: Self = <$typename>::MINUS_ONE;
 
             /// Return the value x + i*0 for a given integer x of type `i32`.
             fn from_i32(x: i32) -> Self {
@@ -2548,6 +2549,22 @@ macro_rules! define_fp_core {
             fn hashcode(self) -> u64 {
                 self.hashcode()
             }
+
+            // const fn const_decode_no_check(buf: &[u8]) -> Self {
+            //     <$typename>::const_decode_no_check(buf)
+            // }
+        }
+
+        impl $crate::traits::fp::Fp2Helper {
+                        /// TODO
+                const SUM_OF_PRODUCTS_ADDITIONAL_SUB: bool = <$typename>::SUM_OF_PRODUCTS_ADDITIONAL_SUB;
+                fn sum_of_products(a1: &Self, b1: &Self, a2: &Self, b2: &Self) -> Self {
+                    <$typename>::sum_of_products(a1, b1, a2, b2);
+                };
+
+                fn difference_of_products(a1: &Self, b1: &Self, a2: &Self, b2: &Self) -> Self {
+                    <$typename>::difference_of_products(a1, b1, a2, b2);
+                }
         }
     };
 } // End of macro: define_fp_core

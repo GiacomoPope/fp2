@@ -23,6 +23,9 @@ pub trait Fp:
     /// The number of limbs needed to represent the finite field element.
     const N: usize;
 
+    /// The number of limbs needed to represent the finite field element.
+    const BIT_LENGTH: usize;
+
     /// Predefined constant element representing the value 0.
     const ZERO: Self;
 
@@ -260,4 +263,15 @@ pub trait Fp:
 
     /// Get the "hash" of the value (low 64 bits of the Montgomery representation)
     fn hashcode(self) -> u64;
+
+    // TODO: it's nice to have const time decoding, but the trait doesnt want me to do this
+    // using the Fp trait... need to think about the best option.
+    // const fn const_decode_no_check(buf: &[u8]) -> Self;
+}
+
+/// TODO
+pub trait Fp2Helper {
+    const SUM_OF_PRODUCTS_ADDITIONAL_SUB: bool;
+    fn sum_of_products(a1: &Self, b1: &Self, a2: &Self, b2: &Self) -> Self;
+    fn difference_of_products(a1: &Self, b1: &Self, a2: &Self, b2: &Self) -> Self;
 }
