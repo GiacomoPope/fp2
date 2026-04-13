@@ -24,12 +24,68 @@
 /// Macro expectations:
 /// - A typename for the finite field generated.
 /// - A finite field type Fp with p = 3 mod 4, for example one generated with the macro `define_fp_core`.
+/// - A token which is expected to be `true` or `false` to decide on whether to use `sum_of_products()`
+///   from the base type to optimse fp2 multiplication.
 #[macro_export]
 macro_rules! define_fp2_from_type {
+    // To allow backwards compatibility, assume no bool means true
     (
         typename = $typename:ident,
         base_field = $Fp:ty,
     ) => {
+        $crate::define_fp2_from_type!(@impl $typename, $Fp, true);
+    };
+
+    // Otherwise detect how to construct set_mul based on the user's flag
+    (
+        typename = $typename:ident,
+        base_field = $Fp:ty,
+        use_sum_of_products = $flag:tt,
+    ) => {
+        $crate::define_fp2_from_type!(@impl $typename, $Fp, $flag);
+    };
+
+    // When the flag is true, we assume difference_of_products and sum_of_products
+    // are implemented
+    (@set_mul_products true, $Fp:ty, $self:expr, $rhs:expr) => {
+        // Computes x*y from:
+        // x = (x0 + i*x1)
+        // y = (y0 + i*y1)
+        // x*y = (x0 + i*x1)*(y0 + i*y1)
+        //     = (x0*y0 - x1*y1) + i*(x0*y1 + y0*x1)
+        // Computes (x0*y0 - x1*y1)
+        let x0 = <$Fp>::difference_of_products(&$self.x0, &$rhs.x0, &$self.x1, &$rhs.x1);
+        // Computes (x0*y1 + y0*x1)
+        let x1 = <$Fp>::sum_of_products(&$self.x0, &$rhs.x1, &$self.x1, &$rhs.x0);
+
+        $self.x0 = x0;
+        $self.x1 = x1;
+    };
+
+    // Otherwise set_mul_products is unimplemented and will not be used by set_mul
+    (@set_mul_products false, $Fp:ty, $self:expr, $other:expr) => {
+        unimplemented!()
+    };
+
+    // When the flag is set to true, we use set_mul_products when an optimised implementation
+    // exists, otherwise we fall back to the schoolbook case (which is faster when we need
+    // an additional subtraction for exceptional fields)
+    (@set_mul true, $Fp:ty, $self:expr, $rhs:expr) => {
+        // If the sum of products needs additional subtractions, then
+        // most of the time schoolbook is better.
+        if <$Fp>::SUM_OF_PRODUCTS_ADDITIONAL_SUB {
+            $self.set_mul_schoolbook($rhs);
+        } else {
+            $self.set_mul_products($rhs);
+        }
+
+    };
+    (@set_mul false, $Fp:ty, $self:expr, $other:expr) => {
+        self.set_mul_schoolbook(rhs);
+    };
+
+    // All other methods of Fp2 are the same regardless of the flag
+    (@impl $typename:ident, $Fp:ty, $flag:tt) => {
         /// GF(p^2) implementation.
         #[derive(Clone, Copy, Debug)]
         pub struct $typename {
@@ -186,10 +242,9 @@ macro_rules! define_fp2_from_type {
             }
 
             #[inline]
-            // NOTE: old multiplication has been replaced in favour of Longa's
-            // algorithm which efficiently computes sums and differences of
-            // products. For more information, see the `sum_of_products()`
-            // function in `fp_gen.rs`.
+            // This schoolbook method always works and is available for benchmarking
+            // Depending on whether the base field has `sum_of_products` as an optimised
+            // method, either this or `mul_products` is used as the default within `set_mul`
             fn set_mul_schoolbook(&mut self, rhs: &Self) {
                 // a <- x0*y0
                 // b <- x1*y1
@@ -206,33 +261,6 @@ macro_rules! define_fp2_from_type {
                 self.x1 -= &b;
             }
 
-            #[inline(always)]
-            fn set_mul_products(&mut self, rhs: &Self) {
-                // Computes x*y from:
-                // x = (x0 + i*x1)
-                // y = (y0 + i*y1)
-                // x*y = (x0 + i*x1)*(y0 + i*y1)
-                //     = (x0*y0 - x1*y1) + i*(x0*y1 + y0*x1)
-                // Computes (x0*y0 - x1*y1)
-                let x0 = <$Fp>::difference_of_products(&self.x0, &rhs.x0, &self.x1, &rhs.x1);
-                // Computes (x0*y1 + y0*x1)
-                let x1 = <$Fp>::sum_of_products(&self.x0, &rhs.x1, &self.x1, &rhs.x0);
-
-                self.x0 = x0;
-                self.x1 = x1;
-            }
-
-            #[inline(always)]
-            fn set_mul(&mut self, rhs: &Self) {
-                // If the sum of products needs additional subtractions, then
-                // most of the time schoolbook is better.
-                if <$Fp>::SUM_OF_PRODUCTS_ADDITIONAL_SUB {
-                    self.set_mul_schoolbook(rhs);
-                } else {
-                    self.set_mul_products(rhs);
-                }
-            }
-
             #[inline]
             fn mul_schoolbook(self, rhs: Self) -> Self {
                 let mut r = self;
@@ -245,6 +273,16 @@ macro_rules! define_fp2_from_type {
                 let mut r = self;
                 r.set_mul_products(&rhs);
                 r
+            }
+
+            #[inline]
+            pub fn set_mul_products(&mut self, other: &Self) {
+                $crate::define_fp2_from_type!(@set_mul_products $flag, $Fp, self, other);
+            }
+
+            #[inline]
+            pub fn set_mul(&mut self, other: &Self) {
+                $crate::define_fp2_from_type!(@set_mul $flag, $Fp, self, other);
             }
 
             #[inline]
