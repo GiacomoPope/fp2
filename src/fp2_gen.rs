@@ -24,12 +24,68 @@
 /// Macro expectations:
 /// - A typename for the finite field generated.
 /// - A finite field type Fp with p = 3 mod 4, for example one generated with the macro `define_fp_core`.
+/// - A token which is expected to be `true` or `false` to decide on whether to use `sum_of_products()`
+///   from the base type to optimse fp2 multiplication.
 #[macro_export]
 macro_rules! define_fp2_from_type {
+    // To allow backwards compatibility, assume no bool means true
     (
         typename = $typename:ident,
         base_field = $Fp:ty,
     ) => {
+        $crate::define_fp2_from_type!(@impl $typename, $Fp, true);
+    };
+
+    // Otherwise detect how to construct set_mul based on the user's flag
+    (
+        typename = $typename:ident,
+        base_field = $Fp:ty,
+        use_sum_of_products = $flag:tt,
+    ) => {
+        $crate::define_fp2_from_type!(@impl $typename, $Fp, $flag);
+    };
+
+    // When the flag is true, we assume difference_of_products and sum_of_products
+    // are implemented
+    (@set_mul_products true, $Fp:ty, $self:expr, $rhs:expr) => {
+        // Computes x*y from:
+        // x = (x0 + i*x1)
+        // y = (y0 + i*y1)
+        // x*y = (x0 + i*x1)*(y0 + i*y1)
+        //     = (x0*y0 - x1*y1) + i*(x0*y1 + y0*x1)
+        // Computes (x0*y0 - x1*y1)
+        let x0 = <$Fp>::difference_of_products(&$self.x0, &$rhs.x0, &$self.x1, &$rhs.x1);
+        // Computes (x0*y1 + y0*x1)
+        let x1 = <$Fp>::sum_of_products(&$self.x0, &$rhs.x1, &$self.x1, &$rhs.x0);
+
+        $self.x0 = x0;
+        $self.x1 = x1;
+    };
+
+    // Otherwise set_mul_products is unimplemented and will not be used by set_mul
+    (@set_mul_products false, $Fp:ty, $self:expr, $other:expr) => {
+        unimplemented!()
+    };
+
+    // When the flag is set to true, we use set_mul_products when an optimised implementation
+    // exists, otherwise we fall back to the schoolbook case (which is faster when we need
+    // an additional subtraction for exceptional fields)
+    (@set_mul true, $Fp:ty, $self:expr, $rhs:expr) => {
+        // If the sum of products needs additional subtractions, then
+        // most of the time schoolbook is better.
+        if <$Fp>::SUM_OF_PRODUCTS_ADDITIONAL_SUB {
+            $self.set_mul_schoolbook($rhs);
+        } else {
+            $self.set_mul_products($rhs);
+        }
+
+    };
+    (@set_mul false, $Fp:ty, $self:expr, $other:expr) => {
+        self.set_mul_schoolbook(rhs);
+    };
+
+    // All other methods of Fp2 are the same regardless of the flag
+    (@impl $typename:ident, $Fp:ty, $flag:tt) => {
         /// GF(p^2) implementation.
         #[derive(Clone, Copy, Debug)]
         pub struct $typename {
@@ -78,42 +134,12 @@ macro_rules! define_fp2_from_type {
                 Self { x0: *re, x1: *im }
             }
 
-            /// Create an element by converting the provided integer.
-            #[inline(always)]
-            fn from_i32(x: i32) -> Self {
-                let mut r = Self::ZERO;
-                r.x0 = <$Fp>::from_i32(x);
-                r
-            }
-
-            /// Create an element by converting the provided integer.
-            #[inline(always)]
-            fn from_i64(x: i64) -> Self {
-                let mut r = Self::ZERO;
-                r.x0 = <$Fp>::from_i64(x);
-                r
-            }
-
-            /// Create an element by converting the provided integer.
-            #[inline(always)]
-            fn from_u32(x: u32) -> Self {
-                Self::from_u64(x as u64)
-            }
-
-            /// Create an element by converting the provided integer.
-            #[inline(always)]
-            fn from_u64(x: u64) -> Self {
-                let mut r = Self::ZERO;
-                r.x0 = <$Fp>::from_u64(x);
-                r
-            }
-
             /// Create an element [x0, x1] from a pair of integers
             #[inline(always)]
             fn from_u32_pair(x0: u32, x1: u32) -> Self {
                 let mut r = Self::ZERO;
-                r.x0 = <$Fp>::from_u32(x0);
-                r.x1 = <$Fp>::from_u32(x1);
+                r.x0 = <$Fp>::from(x0);
+                r.x1 = <$Fp>::from(x1);
                 r
             }
 
@@ -121,8 +147,8 @@ macro_rules! define_fp2_from_type {
             #[inline(always)]
             fn from_i32_pair(x0: i32, x1: i32) -> Self {
                 let mut r = Self::ZERO;
-                r.x0 = <$Fp>::from_i32(x0);
-                r.x1 = <$Fp>::from_i32(x1);
+                r.x0 = <$Fp>::from(x0);
+                r.x1 = <$Fp>::from(x1);
                 r
             }
 
@@ -130,8 +156,8 @@ macro_rules! define_fp2_from_type {
             #[inline(always)]
             fn from_u64_pair(x0: u64, x1: u64) -> Self {
                 let mut r = Self::ZERO;
-                r.x0 = <$Fp>::from_u64(x0);
-                r.x1 = <$Fp>::from_u64(x1);
+                r.x0 = <$Fp>::from(x0);
+                r.x1 = <$Fp>::from(x1);
                 r
             }
 
@@ -139,21 +165,21 @@ macro_rules! define_fp2_from_type {
             #[inline(always)]
             fn from_i64_pair(x0: i64, x1: i64) -> Self {
                 let mut r = Self::ZERO;
-                r.x0 = <$Fp>::from_i64(x0);
-                r.x1 = <$Fp>::from_i64(x1);
+                r.x0 = <$Fp>::from(x0);
+                r.x1 = <$Fp>::from(x1);
                 r
             }
 
             /// Set the real part of the value to a small integer value
             #[inline(always)]
             fn set_x0_small(&mut self, x: i32) {
-                self.x0 = <$Fp>::from_i32(x);
+                self.x0 = <$Fp>::from(x);
             }
 
             /// Set the real part of the value to a small integer value
             #[inline(always)]
             fn set_x1_small(&mut self, x: i32) {
-                self.x1 = <$Fp>::from_i32(x);
+                self.x1 = <$Fp>::from(x);
             }
 
             #[inline]
@@ -216,10 +242,9 @@ macro_rules! define_fp2_from_type {
             }
 
             #[inline]
-            // NOTE: old multiplication has been replaced in favour of Longa's
-            // algorithm which efficiently computes sums and differences of
-            // products. For more information, see the `sum_of_products()`
-            // function in `fp_gen.rs`.
+            // This schoolbook method always works and is available for benchmarking
+            // Depending on whether the base field has `sum_of_products` as an optimised
+            // method, either this or `mul_products` is used as the default within `set_mul`
             fn set_mul_schoolbook(&mut self, rhs: &Self) {
                 // a <- x0*y0
                 // b <- x1*y1
@@ -236,33 +261,6 @@ macro_rules! define_fp2_from_type {
                 self.x1 -= &b;
             }
 
-            #[inline(always)]
-            fn set_mul_products(&mut self, rhs: &Self) {
-                // Computes x*y from:
-                // x = (x0 + i*x1)
-                // y = (y0 + i*y1)
-                // x*y = (x0 + i*x1)*(y0 + i*y1)
-                //     = (x0*y0 - x1*y1) + i*(x0*y1 + y0*x1)
-                // Computes (x0*y0 - x1*y1)
-                let x0 = <$Fp>::difference_of_products(&self.x0, &rhs.x0, &self.x1, &rhs.x1);
-                // Computes (x0*y1 + y0*x1)
-                let x1 = <$Fp>::sum_of_products(&self.x0, &rhs.x1, &self.x1, &rhs.x0);
-
-                self.x0 = x0;
-                self.x1 = x1;
-            }
-
-            #[inline(always)]
-            fn set_mul(&mut self, rhs: &Self) {
-                // If the sum of products needs additional subtractions, then
-                // most of the time schoolbook is better.
-                if <$Fp>::SUM_OF_PRODUCTS_ADDITIONAL_SUB {
-                    self.set_mul_schoolbook(rhs);
-                } else {
-                    self.set_mul_products(rhs);
-                }
-            }
-
             #[inline]
             fn mul_schoolbook(self, rhs: Self) -> Self {
                 let mut r = self;
@@ -275,6 +273,16 @@ macro_rules! define_fp2_from_type {
                 let mut r = self;
                 r.set_mul_products(&rhs);
                 r
+            }
+
+            #[inline]
+            pub fn set_mul_products(&mut self, other: &Self) {
+                $crate::define_fp2_from_type!(@set_mul_products $flag, $Fp, self, other);
+            }
+
+            #[inline]
+            pub fn set_mul(&mut self, other: &Self) {
+                $crate::define_fp2_from_type!(@set_mul $flag, $Fp, self, other);
             }
 
             #[inline]
@@ -411,7 +419,7 @@ macro_rules! define_fp2_from_type {
             }
 
             #[inline]
-            fn set_condneg(&mut self, ctl: u32) {
+            fn set_cond_neg(&mut self, ctl: u32) {
                 let y0 = -(&self.x0);
                 let y1 = -(&self.x1);
                 self.x0.set_cond(&y0, ctl);
@@ -419,9 +427,9 @@ macro_rules! define_fp2_from_type {
             }
 
             #[inline]
-            fn condswap(a: &mut Self, b: &mut Self, ctl: u32) {
-                <$Fp>::condswap(&mut a.x0, &mut b.x0, ctl);
-                <$Fp>::condswap(&mut a.x1, &mut b.x1, ctl);
+            fn cond_swap(a: &mut Self, b: &mut Self, ctl: u32) {
+                <$Fp>::cond_swap(&mut a.x0, &mut b.x0, ctl);
+                <$Fp>::cond_swap(&mut a.x1, &mut b.x1, ctl);
             }
 
             #[inline]
@@ -541,7 +549,7 @@ macro_rules! define_fp2_from_type {
                 // If not a square:
                 //    if x1 = 0, then y0sq contains x0 and we want -x0
                 //    if x1 != 0, then y0sq <- y0sq - sqrt(delta)
-                y0sq.set_condneg(nqr & x1z);
+                y0sq.set_cond_neg(nqr & x1z);
                 y0sq.set_cond(&(y0sq - sqrt_delta), nqr & !x1z);
                 // Get the square root.
                 let (mut y0, r2) = y0sq.sqrt();
@@ -550,7 +558,7 @@ macro_rules! define_fp2_from_type {
                 let mut y1 = self.x1 / y0.mul2();
                 // If x1 = 0, then the square root worked, and y1 = 0 at this point;
                 // we must still exchange y0 and y1 if x0 was not a square.
-                <$Fp>::condswap(&mut y0, &mut y1, nqr & x1z);
+                <$Fp>::cond_swap(&mut y0, &mut y1, nqr & x1z);
                 // Result goes into this object. If there was a failure (r == 0),
                 // then we must clear both x0 and x1.
                 self.x0.set_select(&<$Fp>::ZERO, &y0, r);
@@ -559,7 +567,7 @@ macro_rules! define_fp2_from_type {
                 let x0odd = ((self.x0.encode()[0] as u32) & 1).wrapping_neg();
                 let x1odd = ((self.x1.encode()[0] as u32) & 1).wrapping_neg();
                 let x0z = self.x0.is_zero();
-                self.set_condneg(x0odd | (x0z & x1odd));
+                self.set_cond_neg(x0odd | (x0z & x1odd));
                 r
             }
 
@@ -648,7 +656,7 @@ macro_rules! define_fp2_from_type {
                 let lsy02 = y02.legendre();
                 let nqr = (lsy02 >> 1) as u32;
                 y02.set_cond(&(y02 - n), nqr);
-                n.set_condneg(nqr);
+                n.set_cond_neg(nqr);
 
                 // When y0^2 is zero, the correct value
                 // is insead n, so we can do a conditional
@@ -689,7 +697,7 @@ macro_rules! define_fp2_from_type {
                 let x0odd = ((self.x0.encode()[0] as u32) & 1).wrapping_neg();
                 let x1odd = ((self.x1.encode()[0] as u32) & 1).wrapping_neg();
                 let x0z = self.x0.is_zero();
-                self.set_condneg(x0odd | (x0z & x1odd));
+                self.set_cond_neg(x0odd | (x0z & x1odd));
 
                 return r;
             }
@@ -1217,6 +1225,42 @@ macro_rules! define_fp2_from_type {
             }
         }
 
+        /*
+         * Implementations of from methods from simple integer types
+         */
+
+        impl From<u64> for $typename {
+            fn from(x: u64) -> $typename {
+                let mut r = Self::ZERO;
+                r.x0 = <$Fp>::from(x);
+                r
+            }
+        }
+
+        impl From<i64> for $typename {
+            fn from(x: i64) -> $typename {
+                let mut r = Self::ZERO;
+                r.x0 = <$Fp>::from(x);
+                r
+            }
+        }
+
+        impl From<u32> for $typename {
+            fn from(x: u32) -> $typename {
+                let mut r = Self::ZERO;
+                r.x0 = <$Fp>::from(x);
+                r
+            }
+        }
+
+        impl From<i32> for $typename {
+            fn from(x: i32) -> $typename {
+                let mut r = Self::ZERO;
+                r.x0 = <$Fp>::from(x);
+                r
+            }
+        }
+
         impl ::core::ops::Add<$typename> for $typename {
             type Output = $typename;
 
@@ -1471,7 +1515,7 @@ macro_rules! define_fp2_from_type {
             }
         }
 
-        impl $crate::traits::Fp for $typename {
+        impl $crate::traits::Fq for $typename {
             // Reexport constants for base field Trait
             const N: usize = <$Fp>::N;
             const ENCODED_LENGTH: usize = Self::ENCODED_LENGTH;
@@ -1481,26 +1525,6 @@ macro_rules! define_fp2_from_type {
             const THREE: Self = Self::THREE;
             const FOUR: Self = Self::FOUR;
             const MINUS_ONE: Self = Self::MINUS_ONE;
-
-            /// Return the value x + i*0 for a given integer x of type `i32`.
-            fn from_i32(x: i32) -> Self {
-                <$typename>::from_i32(x)
-            }
-
-            /// Return the value x + i*0 for a given integer x of type `u32`.
-            fn from_u32(x: u32) -> Self {
-                <$typename>::from_u32(x)
-            }
-
-            /// Return the value x + i*0 for a given integer x of type `i64`.
-            fn from_i64(x: i64) -> Self {
-                <$typename>::from_i64(x)
-            }
-
-            /// Return the value x + i*0 for a given integer x of type `u64`.
-            fn from_u64(x: u64) -> Self {
-                <$typename>::from_u64(x)
-            }
 
             fn is_zero(self) -> u32 {
                 self.is_zero()
@@ -1556,21 +1580,6 @@ macro_rules! define_fp2_from_type {
             fn set_invert(&mut self) {
                 self.set_invert()
             }
-            fn set_pow(&mut self, e: &[u8], ebitlen: usize) {
-                self.set_pow(e, ebitlen)
-            }
-            fn set_pow_ext(&mut self, e: &[u8], eoff: usize, ebitlen: usize) {
-                self.set_pow_ext(e, eoff, ebitlen)
-            }
-            fn set_pow_u64(&mut self, e: u64, ebitlen: usize) {
-                self.set_pow_u64(e, ebitlen)
-            }
-            fn set_pow_u64_vartime(&mut self, e: u64) {
-                self.set_pow_u64_vartime(e)
-            }
-            fn set_pow_pubexp(&mut self, e: &[u64; Self::N]) {
-                self.set_pow_pubexp(e)
-            }
             fn mul_small(self, k: i32) -> Self {
                 self.mul_small(k)
             }
@@ -1583,34 +1592,12 @@ macro_rules! define_fp2_from_type {
             fn invert(self) -> Self {
                 self.invert()
             }
-            fn pow(self, e: &[u8], ebitlen: usize) -> Self {
-                self.pow(e, ebitlen)
-            }
-            fn pow_ext(self, e: &[u8], eoff: usize, ebitlen: usize) -> Self {
-                self.pow_ext(e, eoff, ebitlen)
-            }
-            fn pow_u64(self, e: u64, ebitlen: usize) -> Self {
-                self.pow_u64(e, ebitlen)
-            }
-            fn pow_u64_vartime(self, e: u64) -> Self {
-                self.pow_u64_vartime(e)
-            }
-            fn pow_pubexp(self, e: &[u64; Self::N]) -> Self {
-                self.pow_pubexp(e)
-            }
             fn set_sqrt(&mut self) -> u32 {
                 self.set_sqrt()
-            }
-            fn set_fourth_root(&mut self) -> u32 {
-                self.set_fourth_root()
             }
             fn sqrt(self) -> (Self, u32) {
                 self.sqrt()
             }
-            fn fourth_root(self) -> (Self, u32) {
-                self.fourth_root()
-            }
-
             fn legendre(self) -> i32 {
                 self.legendre()
             }
@@ -1628,14 +1615,14 @@ macro_rules! define_fp2_from_type {
             fn set_cond(&mut self, rhs: &Self, ctl: u32) {
                 self.set_cond(rhs, ctl)
             }
-            fn set_condneg(&mut self, ctl: u32) {
-                self.set_condneg(ctl)
+            fn set_cond_neg(&mut self, ctl: u32) {
+                self.set_cond_neg(ctl)
             }
             fn select(a: &Self, b: &Self, ctl: u32) -> Self {
                 <$typename>::select(a, b, ctl)
             }
-            fn condswap(a: &mut Self, b: &mut Self, ctl: u32) {
-                <$typename>::condswap(a, b, ctl)
+            fn cond_swap(a: &mut Self, b: &mut Self, ctl: u32) {
+                <$typename>::cond_swap(a, b, ctl)
             }
 
             fn encode(self) -> [u8; Self::ENCODED_LENGTH] {
@@ -1648,15 +1635,59 @@ macro_rules! define_fp2_from_type {
                 <$typename>::decode_reduce(buf)
             }
 
+            fn hashcode(self) -> u64 {
+                self.hashcode()
+            }
+        }
+
+        impl $crate::traits::FqExp for $typename {
+            fn set_pow(&mut self, e: &[u8], ebitlen: usize) {
+                self.set_pow(e, ebitlen)
+            }
+            fn set_pow_ext(&mut self, e: &[u8], eoff: usize, ebitlen: usize) {
+                self.set_pow_ext(e, eoff, ebitlen)
+            }
+            fn set_pow_u64(&mut self, e: u64, ebitlen: usize) {
+                self.set_pow_u64(e, ebitlen)
+            }
+            fn set_pow_u64_vartime(&mut self, e: u64) {
+                self.set_pow_u64_vartime(e)
+            }
+            fn set_pow_pubexp(&mut self, e: &[u64; <$Fp>::N]) {
+                self.set_pow_pubexp(e)
+            }
+            fn pow(self, e: &[u8], ebitlen: usize) -> Self {
+                self.pow(e, ebitlen)
+            }
+            fn pow_ext(self, e: &[u8], eoff: usize, ebitlen: usize) -> Self {
+                self.pow_ext(e, eoff, ebitlen)
+            }
+            fn pow_u64(self, e: u64, ebitlen: usize) -> Self {
+                self.pow_u64(e, ebitlen)
+            }
+            fn pow_u64_vartime(self, e: u64) -> Self {
+                self.pow_u64_vartime(e)
+            }
+            fn pow_pubexp(self, e: &[u64; <$Fp>::N]) -> Self {
+                self.pow_pubexp(e)
+            }
+        }
+
+        impl $crate::traits::FqRoots for $typename {
+            fn set_fourth_root(&mut self) -> u32 {
+                self.set_fourth_root()
+            }
+            fn fourth_root(self) -> (Self, u32) {
+                self.fourth_root()
+            }
+        }
+
+        impl $crate::traits::FqRnd for $typename {
             fn set_rand<R: ::rand_core::CryptoRng + ::rand_core::RngCore>(&mut self, rng: &mut R) {
                 self.set_rand(rng)
             }
             fn rand<R: ::rand_core::CryptoRng + ::rand_core::RngCore>(rng: &mut R) -> Self {
                 <$typename>::rand(rng)
-            }
-
-            fn hashcode(self) -> u64 {
-                self.hashcode()
             }
         }
 
