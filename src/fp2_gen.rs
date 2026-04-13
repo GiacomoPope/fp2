@@ -47,16 +47,16 @@ macro_rules! define_fp2_from_type {
 
     // When the flag is true, we assume difference_of_products and sum_of_products
     // are implemented
-    (@set_mul_products true, $Fp:ty, $self:expr, $rhs:expr) => {
+    (@set_mul_products true, $Fp:ty, $self:expr, $other:expr) => {
         // Computes x*y from:
         // x = (x0 + i*x1)
         // y = (y0 + i*y1)
         // x*y = (x0 + i*x1)*(y0 + i*y1)
         //     = (x0*y0 - x1*y1) + i*(x0*y1 + y0*x1)
         // Computes (x0*y0 - x1*y1)
-        let x0 = <$Fp>::difference_of_products(&$self.x0, &$rhs.x0, &$self.x1, &$rhs.x1);
+        let x0 = <$Fp>::difference_of_products(&$self.x0, &$other.x0, &$self.x1, &$other.x1);
         // Computes (x0*y1 + y0*x1)
-        let x1 = <$Fp>::sum_of_products(&$self.x0, &$rhs.x1, &$self.x1, &$rhs.x0);
+        let x1 = <$Fp>::sum_of_products(&$self.x0, &$other.x1, &$self.x1, &$other.x0);
 
         $self.x0 = x0;
         $self.x1 = x1;
@@ -70,18 +70,18 @@ macro_rules! define_fp2_from_type {
     // When the flag is set to true, we use set_mul_products when an optimised implementation
     // exists, otherwise we fall back to the schoolbook case (which is faster when we need
     // an additional subtraction for exceptional fields)
-    (@set_mul true, $Fp:ty, $self:expr, $rhs:expr) => {
+    (@set_mul true, $Fp:ty, $self:expr, $other:expr) => {
         // If the sum of products needs additional subtractions, then
         // most of the time schoolbook is better.
         if <$Fp>::SUM_OF_PRODUCTS_ADDITIONAL_SUB {
-            $self.set_mul_schoolbook($rhs);
+            $self.set_mul_schoolbook($other);
         } else {
-            $self.set_mul_products($rhs);
+            $self.set_mul_products($other);
         }
 
     };
     (@set_mul false, $Fp:ty, $self:expr, $other:expr) => {
-        self.set_mul_schoolbook(rhs);
+        $self.set_mul_schoolbook($other);
     };
 
     // All other methods of Fp2 are the same regardless of the flag
@@ -262,16 +262,16 @@ macro_rules! define_fp2_from_type {
             }
 
             #[inline]
-            fn mul_schoolbook(self, rhs: Self) -> Self {
-                let mut r = self;
-                r.set_mul_schoolbook(&rhs);
+            fn mul_schoolbook(&self, rhs: &Self) -> Self {
+                let mut r = *self;
+                r.set_mul_schoolbook(rhs);
                 r
             }
 
             #[inline]
-            fn mul_sum_of_products(self, rhs: Self) -> Self {
-                let mut r = self;
-                r.set_mul_products(&rhs);
+            fn mul_sum_of_products(&self, rhs: &Self) -> Self {
+                let mut r = *self;
+                r.set_mul_products(rhs);
                 r
             }
 

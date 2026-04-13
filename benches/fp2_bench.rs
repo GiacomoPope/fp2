@@ -57,7 +57,7 @@ macro_rules! define_fp2_benchmarks {
                 <$Fq>::CHAR_BIT_LENGTH
             );
             c.bench_function(&bench_id, |b| {
-                b.iter(|| black_box(x).mul_sum_of_products(black_box(y)))
+                b.iter(|| black_box(x).mul_sum_of_products(&black_box(y)))
             });
         }
 
@@ -72,7 +72,7 @@ macro_rules! define_fp2_benchmarks {
                 <$Fq>::CHAR_BIT_LENGTH
             );
             c.bench_function(&bench_id, |b| {
-                b.iter(|| black_box(x).mul_schoolbook(black_box(y)))
+                b.iter(|| black_box(x).mul_schoolbook(&black_box(y)))
             });
         }
 

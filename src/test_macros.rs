@@ -1090,13 +1090,9 @@ macro_rules! define_fp2_tests {
                 assert_eq!(zc0, zd0, "iter {i}: mul (*) x0 failed");
                 assert_eq!(zc1, zd1, "iter {i}: mul (*) x1 failed");
 
-                let (zc0, zc1) = fp2_decode_components(&a.mul_schoolbook(b).encode());
+                let (zc0, zc1) = fp2_decode_components(&a.mul_schoolbook(&b).encode());
                 assert_eq!(zc0, zd0, "iter {i}: mul_schoolbook x0 failed");
                 assert_eq!(zc1, zd1, "iter {i}: mul_schoolbook x1 failed");
-
-                let (zc0, zc1) = fp2_decode_components(&a.mul_sum_of_products(b).encode());
-                assert_eq!(zc0, zd0, "iter {i}: mul_sum_of_products x0 failed");
-                assert_eq!(zc1, zd1, "iter {i}: mul_sum_of_products x1 failed");
             }
 
             // a * 0 == 0 and 0 * 0 == 0.

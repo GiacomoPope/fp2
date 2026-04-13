@@ -23,6 +23,29 @@ mod tests {
         }
     }
 
+    mod fp127_no_sop_tests {
+        // Field modulus
+        const MODULUS: [u64; 2] = [0xFFFFFFFFFFFFFFFF, 0x7FFFFFFFFFFFFFFF];
+
+        fp2::define_fp_core!(typename = Fp127, modulus = MODULUS,);
+        fp2::define_fp_tests!(Fp127);
+
+        fp2::define_fp2_from_type!(
+            typename = Fp127Ext,
+            base_field = Fp127,
+            use_sum_of_products = false,
+        );
+        fp2::define_fp2_tests!(Fp127Ext, MODULUS, 2);
+
+        #[test]
+        #[should_panic(expected = "not implemented")]
+        fn test_any_panic() {
+            let a = Fp127Ext::ONE;
+            let b = Fp127Ext::ONE;
+            Fp127Ext::mul_sum_of_products(&a, &b);
+        }
+    }
+
     mod fp127_tests {
         // Field modulus
         const MODULUS: [u64; 2] = [0xFFFFFFFFFFFFFFFF, 0x7FFFFFFFFFFFFFFF];
