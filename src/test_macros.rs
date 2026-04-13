@@ -416,7 +416,7 @@ macro_rules! define_fp_tests {
 
                 let zc = ::num_bigint::BigInt::from_bytes_le(
                     ::num_bigint::Sign::Plus,
-                    &<$Fp>::from_i32(k32).encode(),
+                    &<$Fp>::from(k32).encode(),
                 );
                 assert_eq!(
                     zc,
@@ -426,13 +426,13 @@ macro_rules! define_fp_tests {
 
                 let zc = ::num_bigint::BigInt::from_bytes_le(
                     ::num_bigint::Sign::Plus,
-                    &<$Fp>::from_u32(ku32).encode(),
+                    &<$Fp>::from(ku32).encode(),
                 );
                 assert_eq!(zc, ku32.to_bigint().unwrap(), "iter {i}: from_u32 failed");
 
                 let zc = ::num_bigint::BigInt::from_bytes_le(
                     ::num_bigint::Sign::Plus,
-                    &<$Fp>::from_i64(k64).encode(),
+                    &<$Fp>::from(k64).encode(),
                 );
                 assert_eq!(
                     zc,
@@ -442,31 +442,31 @@ macro_rules! define_fp_tests {
 
                 let zc = ::num_bigint::BigInt::from_bytes_le(
                     ::num_bigint::Sign::Plus,
-                    &<$Fp>::from_u64(ku64).encode(),
+                    &<$Fp>::from(ku64).encode(),
                 );
                 assert_eq!(zc, ku64.to_bigint().unwrap(), "iter {i}: from_u64 failed");
             }
 
             // Zero inputs must give the zero element.
             assert_eq!(
-                <$Fp>::from_i32(0).is_zero(),
+                <$Fp>::from(0i32).is_zero(),
                 u32::MAX,
-                "from_i32(0) should be zero"
+                "from(0i32) should be zero"
             );
             assert_eq!(
-                <$Fp>::from_u32(0).is_zero(),
+                <$Fp>::from(0u32).is_zero(),
                 u32::MAX,
-                "from_u32(0) should be zero"
+                "from(0u32) should be zero"
             );
             assert_eq!(
-                <$Fp>::from_i64(0).is_zero(),
+                <$Fp>::from(0i64).is_zero(),
                 u32::MAX,
-                "from_i64(0) should be zero"
+                "from(0i64) should be zero"
             );
             assert_eq!(
-                <$Fp>::from_u64(0).is_zero(),
+                <$Fp>::from(0u32).is_zero(),
                 u32::MAX,
-                "from_u64(0) should be zero"
+                "from(0u32) should be zero"
             );
         }
 
@@ -597,7 +597,7 @@ macro_rules! define_fp_tests {
             );
         }
 
-        /// `select`, `set_cond`, `condswap`, `set_condneg`.
+        /// `select`, `set_cond`, `cond_swap`, `set_cond_neg`.
         #[test]
         fn fp_test_conditional_ops() {
             // Random pairs.
@@ -632,37 +632,37 @@ macro_rules! define_fp_tests {
                     "iter {i}: set_cond(0xFF..FF) should overwrite"
                 );
 
-                // condswap: no swap on 0, swap on MAX.
+                // cond_swap: no swap on 0, swap on MAX.
                 let mut x = a;
                 let mut y = b;
-                <$Fp>::condswap(&mut x, &mut y, 0x00000000);
-                assert_eq!(x.equals(&a), u32::MAX, "iter {i}: condswap(0) changed x");
-                assert_eq!(y.equals(&b), u32::MAX, "iter {i}: condswap(0) changed y");
-                <$Fp>::condswap(&mut x, &mut y, u32::MAX);
+                <$Fp>::cond_swap(&mut x, &mut y, 0x00000000);
+                assert_eq!(x.equals(&a), u32::MAX, "iter {i}: cond_swap(0) changed x");
+                assert_eq!(y.equals(&b), u32::MAX, "iter {i}: cond_swap(0) changed y");
+                <$Fp>::cond_swap(&mut x, &mut y, u32::MAX);
                 assert_eq!(
                     x.equals(&b),
                     u32::MAX,
-                    "iter {i}: condswap(0xFF..FF) x should be old y"
+                    "iter {i}: cond_swap(0xFF..FF) x should be old y"
                 );
                 assert_eq!(
                     y.equals(&a),
                     u32::MAX,
-                    "iter {i}: condswap(0xFF..FF) y should be old x"
+                    "iter {i}: cond_swap(0xFF..FF) y should be old x"
                 );
 
-                // set_condneg: unchanged on 0, negated on MAX.
+                // set_cond_neg: unchanged on 0, negated on MAX.
                 let mut c = a;
-                c.set_condneg(0x00000000);
+                c.set_cond_neg(0x00000000);
                 assert_eq!(
                     c.equals(&a),
                     u32::MAX,
-                    "iter {i}: set_condneg(0) should not negate"
+                    "iter {i}: set_cond_neg(0) should not negate"
                 );
-                c.set_condneg(u32::MAX);
+                c.set_cond_neg(u32::MAX);
                 assert_eq!(
                     c.equals(&(-a)),
                     u32::MAX,
-                    "iter {i}: set_condneg(0xFF..FF) should negate"
+                    "iter {i}: set_cond_neg(0xFF..FF) should negate"
                 );
             }
 
@@ -680,13 +680,13 @@ macro_rules! define_fp_tests {
                 "select(0, a, 0xFF..FF) should be a"
             );
 
-            // set_condneg of zero is still zero (negation of 0 is 0).
+            // set_cond_neg of zero is still zero (negation of 0 is 0).
             let mut z = <$Fp>::ZERO;
-            z.set_condneg(u32::MAX);
+            z.set_cond_neg(u32::MAX);
             assert_eq!(
                 z.is_zero(),
                 u32::MAX,
-                "set_condneg(0xFF..FF) of zero should still be zero"
+                "set_cond_neg(0xFF..FF) of zero should still be zero"
             );
         }
 
@@ -856,12 +856,8 @@ macro_rules! define_fp_tests {
 
         #[test]
         fn test_fp_trait_static_methods() {
-            use fp2::traits::Fp;
-            fn via_trait<F: Fp>(x: F, y: F) {
-                let _ = F::from_i32(1);
-                let _ = F::from_u32(1);
-                let _ = F::from_i64(1);
-                let _ = F::from_u64(1);
+            use fp2::traits::Fq;
+            fn via_trait<F: Fq>(x: F, y: F) {
                 let mut elems = [F::ONE, F::TWO, F::THREE];
                 F::batch_invert(&mut elems);
                 let _ = F::select(&F::ZERO, &F::ONE, 0);
@@ -875,7 +871,7 @@ macro_rules! define_fp_tests {
                 assert_eq!(ok, 0xFFFFFFFF);
                 assert_eq!(root.square().equals(&x.square()), 0xFFFFFFFF);
             }
-            via_trait(<$Fp>::from_u32(3), <$Fp>::from_u32(7));
+            via_trait(<$Fp>::from(3u32), <$Fp>::from(7u32));
         }
     };
 } // End of macro: define_fp_tests
@@ -945,7 +941,7 @@ macro_rules! define_fp2_tests {
         /// Construct a known non-quadratic-residue in Fp2:
         ///   nqr = $nqr + i   (real part $nqr, imaginary part 1)
         fn fp2_nqr() -> $Fp2 {
-            let mut nqr: $Fp2 = <$Fp2>::from_u64($nqr);
+            let mut nqr: $Fp2 = <$Fp2>::from($nqr);
             nqr += <$Fp2>::ZETA;
             nqr
         }

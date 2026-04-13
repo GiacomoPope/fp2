@@ -1,12 +1,354 @@
 //! Traits for implementing generic operations over finite fields.
 //!
-//! Currently includes two traits.
-//!
-//! - Fp: is a trait for generic finite field arithmetic over GF(p)
-//! - Fp2: a supertrait of Fp for the finite field GF(p^2) with modulus x^2 + 1
+//! - Fq: defines arithmetic and constant time operations for a finite field GF(q)
+//! - FqExp: specialised trait for computing modular exponentiation
+//! - FqRnd: specialised trait for computing random elements in the field
+//! - FqRoots: specialised trait for computing roots in the field. Note `Fq` expects `set_sqrt()` and `sqrt` due to the commonality of their usage.
+//! - Fp2: a supertrait of Fq for the finite field GF(p^2) with modulus x^2 + 1
+use core::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
+use std::fmt::Display;
 
-pub mod fp;
-pub mod fp2;
+/// Trait for Finite Field Arithmetic for the field GF(q). These are the core arithmetic and
+/// constant time operations which are expected to be implemented for all fields.
+pub trait Fq:
+    Copy
+    + Neg<Output = Self>
+    + Add<Output = Self>
+    + AddAssign
+    + Sub<Output = Self>
+    + SubAssign
+    + Mul<Output = Self>
+    + MulAssign
+    + Div<Output = Self>
+    + DivAssign
+    + Display
+    + From<u32>
+    + From<u64>
+    + From<i32>
+    + From<i64>
+{
+    /// The length of the encoded representation of the finite field element.
+    const ENCODED_LENGTH: usize;
 
-pub use fp::Fp;
-pub use fp2::Fp2;
+    /// The number of u64 limbs needed to represent the finite field element.
+    // TODO: i dont like including this, maybe refactor this away.
+    const N: usize;
+
+    /// Predefined constant element representing the value 0.
+    const ZERO: Self;
+
+    /// Predefined constant element representing the value 1.
+    const ONE: Self;
+
+    /// Predefined constant element representing the value 2.
+    const TWO: Self;
+
+    /// Predefined constant element representing the value 3.
+    const THREE: Self;
+
+    /// Predefined constant element representing the value 4.
+    const FOUR: Self;
+
+    /// Predefined constant element representing the value -1.
+    const MINUS_ONE: Self;
+
+    /// Return `0xFFFFFFFF` if this value is zero, or `0x00000000` otherwise.
+    fn is_zero(self) -> u32;
+
+    /// Return `0xFFFFFFFF` if this value is equal to rhs, or `0x00000000`
+    /// otherwise.
+    fn equals(self, rhs: &Self) -> u32;
+
+    /// Negate this value.
+    fn set_neg(&mut self);
+
+    /// Halve this value.
+    fn set_half(&mut self);
+
+    /// Double this value.
+    fn set_mul2(&mut self);
+
+    /// Triple this value.
+    fn set_mul3(&mut self);
+
+    /// Quadruple this value.
+    fn set_mul4(&mut self);
+
+    /// Multiply this value by 8
+    fn set_mul8(&mut self);
+
+    /// Multiply this value by a small signed integer.
+    fn set_mul_small(&mut self, k: i32);
+
+    /// Replace this value with its square.
+    fn set_square(&mut self);
+
+    /// Square this value n times in place
+    fn set_n_square(&mut self, n: u32);
+
+    /// Replace this value with its inverse.
+    fn set_invert(&mut self);
+
+    /// Set this value to its square root. Returned value is `0xFFFFFFFF` if
+    /// the operation succeeded (value was indeed a quadratic residue), or
+    /// `0x00000000` otherwise. On success, the chosen root is be set
+    /// deterministically by setting the least significant bit
+    /// (as a canonical integer) to zero.
+    fn set_sqrt(&mut self) -> u32;
+
+    /// Compute the half of this value.
+    fn half(self) -> Self;
+
+    /// Compute the sum of this value with itself.
+    fn mul2(self) -> Self;
+
+    /// Compute the triple of this value.
+    fn mul3(self) -> Self;
+
+    /// Compute the quadruple of this value.
+    fn mul4(self) -> Self;
+
+    /// Compute 8 times this value.
+    fn mul8(self) -> Self;
+
+    /// Compute the product of this value by a small signed integer `k`.
+    fn mul_small(self, k: i32) -> Self;
+
+    /// Compute the square of this value.
+    fn square(self) -> Self;
+
+    /// Compute the square of this value n times.
+    fn n_square(self, n: u32) -> Self;
+
+    /// Compute the inverse of this value
+    fn invert(self) -> Self;
+
+    /// Compute the square root of this value. If this value is indeed a
+    /// quadratic residue, then this returns `(x, 0xFFFFFFFF)`, with `x` being
+    /// the (unique) square root of this value whose least significant bit
+    /// is zero (when normalized to an integer in `[0..p-1]`). If this value
+    /// is not a quadratic residue, then this returns (zero, `0x00000000`).
+    fn sqrt(self) -> (Self, u32);
+
+    /// Legendre symbol on this value. Return value is:
+    /// -  0   if this value is zero
+    /// - +1   if this value is a non-zero quadratic residue
+    /// - -1   if this value is not a quadratic residue
+    fn legendre(self) -> i32;
+
+    /// Return `0xFFFFFFFF` when this value is a square in GF(p^2) and
+    /// `0x00000000` otherwise.
+    fn is_square(self) -> u32;
+
+    /// Given `n` elements, computes the inverse of all elements in-place at a cost
+    /// of one inversion and 3*(n - 1) multiplications using Montgomery's trick
+    fn batch_invert(xx: &mut [Self]);
+
+    /// Return `a` or `b`, if `ctl` is `0x00000000` or `0xFFFFFFFF`, respectively.
+    /// `ctl` MUST be either `0x00000000` or `0xFFFFFFFF`.
+    /// The value of `ctl` MUST be either `0x00000000` or `0xFFFFFFFF`.
+    fn set_select(&mut self, a: &Self, b: &Self, ctl: u32);
+
+    /// Set this value to `rhs` if `ctl` is `0xFFFFFFFF`; leave it unchanged if
+    /// `ctl` is `0x00000000`.
+    /// The value of `ctl` MUST be either `0x00000000` or `0xFFFFFFFF`.
+    fn set_cond(&mut self, rhs: &Self, ctl: u32);
+
+    /// Negate this value if `ctl` is `0xFFFFFFFF`; leave it unchanged if
+    /// `ctl` is `0x00000000`.
+    /// The value of `ctl` MUST be either `0x00000000` or `0xFFFFFFFF`.
+    fn set_cond_neg(&mut self, ctl: u32);
+
+    /// Return `a` or `b`, if `ctl` is `0x00000000` or `0xFFFFFFFF`, respectively.
+    /// `ctl` MUST be either `0x00000000` or `0xFFFFFFFF`.
+    /// The value of `ctl` MUST be either `0x00000000` or `0xFFFFFFFF`.
+    fn select(a: &Self, b: &Self, ctl: u32) -> Self;
+
+    /// Exchange the values of `a` and `b` is `ctl` is `0xFFFFFFFF`; leave both
+    /// values unchanged if `ctl` is `0x00000000`.
+    /// The value of `ctl` MUST be either `0x00000000` or `0xFFFFFFFF`.
+    fn cond_swap(a: &mut Self, b: &mut Self, ctl: u32);
+
+    /// Encode this value into bytes. Encoding uses little-endian, has
+    /// a fixed size (for a given field), and is canonical.
+    fn encode(self) -> [u8; Self::ENCODED_LENGTH];
+
+    /// Decode the provided bytes into a field element. Returned values
+    /// are the element and `0xFFFFFFFF` on success, or the zero element and
+    /// `0x00000000` on failure. A failure is reported if the source slice
+    /// does not have exactly the canonical encoding length of a field
+    /// element (`Self::ENCODED_LENGTH`), or if the source encodes
+    /// an integer which is not in the `[0..(p-1)]` range.
+    fn decode(buf: &[u8]) -> (Self, u32);
+
+    /// Decode the provided bytes into a field element. The source slice
+    /// can have arbitrary length; the bytes are interpreted with the
+    /// unsigned little-endian convention (no sign bit).
+    /// By definition, this function does not enforce canonicality of the source
+    /// value.
+    fn decode_reduce(buf: &[u8]) -> Self;
+
+    /// Get the "hash" of the value (low 64 bits of the Montgomery representation)
+    fn hashcode(self) -> u64;
+}
+
+/// Specialised methods for computing roots in a finite field, currently only holds
+/// fourth roots, but a TODO item is ell-th roots when gcd(p - 1, ell) = 1, which
+/// is easily handled and useful for radical isogenies.
+pub trait FqRoots: Fq {
+    /// Set this value to its fourth root. Returned value is `0xFFFFFFFF` if
+    /// the operation succeeded (value was indeed a quadratic residue), or
+    /// `0x00000000` otherwise. On success, the chosen root is be set
+    /// deterministically by setting the least significant bit
+    /// (as a canonical integer) to zero.
+    fn set_fourth_root(&mut self) -> u32;
+
+    /// Compute the fourth root of this value. If this value is indeed some
+    /// element to the power of four, then this returns `(x, 0xFFFFFFFF)`, with `x` being
+    /// the (unique) fourth root of this value whose least significant bit
+    /// is zero (when normalized to an integer in `[0..p-1]`). If this value
+    /// is not some element to the power of four, then this returns (zero, `0x00000000`).
+    fn fourth_root(self) -> (Self, u32);
+}
+
+/// Traits for computing exponentiations of finite field elements
+pub trait FqExp: Fq {
+    /// Raise this value to the power `e`. Exponent `e` is encoded in
+    /// unsigned little-endian convention over exactly `ebitlen` bits.
+    fn set_pow(&mut self, e: &[u8], ebitlen: usize);
+
+    /// Raise this value to the power e. Exponent e is encoded in
+    /// unsigned little-endian convention, over exactly `ebitlen` bits,
+    /// and starting at the bit offset eoff.
+    fn set_pow_ext(&mut self, e: &[u8], eoff: usize, ebitlen: usize);
+
+    /// Raise this value to the power `e`. The exponent length (in bits)
+    /// MUST be at most `ebitlen`. This is constant-time for both the
+    /// base value (`self`) and the exponent (`e`); the exponent maximum
+    /// size (`ebitlen`) is considered non-secret.
+    fn set_pow_u64(&mut self, e: u64, ebitlen: usize);
+
+    /// Raise this value to the provided exponent. The exponent is non-zero
+    /// and is public. The exponent is encoded over N 64-bit limbs.
+    fn set_pow_pubexp(&mut self, e: &[u64; Self::N]);
+
+    /// Raise this value to the power `e`. The exponent is considered
+    /// non-secret.
+    fn set_pow_u64_vartime(&mut self, e: u64);
+
+    /// Return this value to the power `e` (as a new element). Exponent `e`
+    /// is encoded in unsigned little-endian convention over exactly
+    /// `ebitlen` bits.
+    fn pow(self, e: &[u8], ebitlen: usize) -> Self;
+
+    /// Return this value to the power `e` (as a new element). Exponent `e`
+    /// is encoded in unsigned little-endian convention over exactly
+    /// `ebitlen` bits, and starting at the bit offset eoff.
+    fn pow_ext(self, e: &[u8], eoff: usize, ebitlen: usize) -> Self;
+
+    /// Return this value to the power `e`. The exponent length (in bits)
+    /// MUST be at most `ebitlen`. This is constant-time for both the
+    /// base value (`self`) and the exponent (`e`); the exponent maximum
+    /// size (`ebitlen`) is considered non-secret.
+    fn pow_u64(self, e: u64, ebitlen: usize) -> Self;
+
+    /// Return this value to the power e. The exponent is considered
+    /// non-secret.
+    fn pow_u64_vartime(self, e: u64) -> Self;
+
+    /// Return this value to the provided exponent. The exponent is non-zero
+    /// and is public. The exponent is encoded over N 64-bit limbs.
+    fn pow_pubexp(self, e: &[u64; Self::N]) -> Self;
+}
+
+/// Traits for obtaining random elements in a finite field
+pub trait FqRnd: Fq {
+    /// Set this structure to a random field element (indistinguishable from uniform generation).
+    fn set_rand<R: ::rand_core::CryptoRng + ::rand_core::RngCore>(&mut self, rng: &mut R);
+
+    /// Return a new random field element (indistinguishable from uniform generation).
+    fn rand<R: ::rand_core::CryptoRng + ::rand_core::RngCore>(rng: &mut R) -> Self;
+}
+
+/// Trait for Finite field arithmetic for the extension field GF(p^2) with modulus x^2 + 1.
+/// Extends the Fq trait with additional methods specialised for the degree two extension.
+/// As all Fp2 types are expected to be created using this crate's macro, there's no
+/// smaller extension traits.
+pub trait Fp2: Fq + FqExp + FqRoots + FqRnd {
+    /// The base type Fp of the extension Fp2
+    type BaseField: Fq;
+
+    /// Predefined constant element representing the value 0 + i such that
+    /// i^2 = -1, a fourth-root of unity.
+    const ZETA: Self;
+
+    /// Predefined constant element representing the value 0 - i such that
+    /// i^2 = -1, a fourth-root of unity.
+    const MINUS_ZETA: Self;
+
+    /// Set the "real" component of self to an integer of type `i32` in place.
+    fn set_x0_small(&mut self, x: i32);
+
+    /// Set the "imaginary" component of self to an integer of type `i32` in place.
+    fn set_x1_small(&mut self, x: i32);
+
+    /// Return the value x0 + i*x1 for a given two integers of type `i32`.
+    fn from_i32_pair(x0: i32, x1: i32) -> Self;
+
+    /// Return the value x0 + i*x1 for a given two integers of type `u32`.
+    fn from_u32_pair(x0: u32, x1: u32) -> Self;
+
+    /// Return the value x0 + i*x1 for a given two integers of type `i64`.
+    fn from_i64_pair(x0: i64, x1: i64) -> Self;
+
+    /// Return the value x0 + i*x1 for a given two integers of type `u64`.
+    fn from_u64_pair(x0: u64, x1: u64) -> Self;
+
+    /// Return the x0 value such that self = x0 + i*x1
+    fn x0(self) -> Self::BaseField;
+
+    /// Return the x1 value such that self = x0 + i*x1
+    fn x1(self) -> Self::BaseField;
+
+    /// Return the x0 and x1 values such that self = x0 + i*x1
+    fn xi(self) -> (Self::BaseField, Self::BaseField);
+
+    /// Negate the imaginary part of this value
+    fn set_conjugate(&mut self);
+
+    /// Compute the complex conjugate of the value a + i*b, i.e. a - i*b.
+    fn conjugate(self) -> Self;
+
+    /// Return `0xFFFFFFFF` when this value is a square in GF(p) and
+    /// `0x00000000` otherwise.
+    fn is_square_base_field(self) -> u32;
+
+    /// Precompute two vectors of values used to optimally solve the dlog
+    /// for elements of order 2^n exactly.
+    ///
+    /// Explicitly, this involves computing:
+    /// - A table dlog_table of indicies corresponding to where to split
+    ///   the dlog recursively of type Vec<usize>
+    /// - A table of Fp2 elements `gpp[j] = g^(2^dlog_table[j])` of type
+    ///   of type `Vec<Self>`
+    ///
+    /// Note that the first value (`gpp[0]`) is `g` itself, and the last one must
+    /// be `-1` (otherwise, `g` does not have order exactly 2^e).
+    fn precompute_dlp_tables(self, n: usize) -> (Vec<usize>, Vec<Self>, u32);
+
+    /// Find integer `v` (modulo 2^e) such that `x = self^v`. If self
+    /// has order exactly 2^e, and there is a solution v, then this
+    /// function returns (v, `0xFFFFFFFF`). If self does not have order
+    /// exactly 2^e (including if `self^(2^(e-1)) = 1`, i.e. the order of
+    /// self is a strict divisor or 2^e), or if there is no solution,
+    /// then this function returns `([0], 0)`.
+    ///
+    /// Optionally include precomputed values from the method precompute_dlp_tables
+    /// otherwise these are computed at runtime.
+    fn solve_dlp_2e(
+        self,
+        x: &Self,
+        e: usize,
+        precomputed_tables: Option<(&Vec<usize>, &Vec<Self>)>,
+    ) -> (Vec<u8>, u32);
+}

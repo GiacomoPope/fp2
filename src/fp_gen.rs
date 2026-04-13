@@ -113,41 +113,6 @@ macro_rules! define_fp_core {
                 return Self(input);
             }
 
-            /// Create an element by converting the provided integer.
-            #[inline(always)]
-            pub fn from_i32(x: i32) -> Self {
-                // For the i32 type, we can avoid the mul by R2 in from_u64
-                // by instead using the cheaper set_mul_small with the ONE constant.
-                let mut r = Self::ONE;
-                r.set_mul_small(x);
-                r
-            }
-
-            /// Create an element by converting the provided integer.
-            #[inline(always)]
-            pub fn from_i64(x: i64) -> Self {
-                let sx = (x >> 63) as u64;
-                let ax = ((x as u64) ^ sx).wrapping_sub(sx);
-                let mut r = Self::from_u64(ax);
-                r.set_condneg(sx as u32);
-                r
-            }
-
-            /// Create an element by converting the provided integer.
-            #[inline(always)]
-            pub fn from_u32(x: u32) -> Self {
-                Self::from_u64(x as u64)
-            }
-
-            /// Create an element by converting the provided integer.
-            #[inline(always)]
-            pub fn from_u64(x: u64) -> Self {
-                let mut r = Self::ZERO;
-                r.0[0] = x;
-                r.set_mul(&Self::R2);
-                r
-            }
-
             /// Return 0xFFFFFFFF if this value is zero, or 0x00000000 otherwise.
             #[inline]
             pub fn is_zero(self) -> u32 {
@@ -649,7 +614,7 @@ macro_rules! define_fp_core {
                 }
 
                 // We computed self*|k|; we must adjust for the sign of k.
-                self.set_condneg(sk);
+                self.set_cond_neg(sk);
             }
 
             /// Compute the product of this value by a small (unsigned) integer k.
@@ -700,7 +665,7 @@ macro_rules! define_fp_core {
             /// ctl is 0x00000000.
             /// The value of ctl MUST be either 0x00000000 or 0xFFFFFFFF.
             #[inline]
-            pub fn set_condneg(&mut self, ctl: u32) {
+            pub fn set_cond_neg(&mut self, ctl: u32) {
                 let v = -(self as &Self);
                 self.set_cond(&v, ctl);
             }
@@ -709,7 +674,7 @@ macro_rules! define_fp_core {
             /// values unchanged if ctl is 0x00000000.
             /// The value of ctl MUST be either 0x00000000 or 0xFFFFFFFF.
             #[inline]
-            pub fn condswap(a: &mut Self, b: &mut Self, ctl: u32) {
+            pub fn cond_swap(a: &mut Self, b: &mut Self, ctl: u32) {
                 let c = (ctl as u64) | ((ctl as u64) << 32);
                 for i in 0..Self::N {
                     let wa = a.0[i];
@@ -1043,7 +1008,7 @@ macro_rules! define_fp_core {
 
                 // Normalise the output so that the LSB is zero
                 let ctl = ((self.encode()[0] as u32) & 1).wrapping_neg();
-                self.set_condneg(ctl);
+                self.set_cond_neg(ctl);
 
                 r
             }
@@ -1089,7 +1054,7 @@ macro_rules! define_fp_core {
 
                 // Normalise the output so that the LSB is zero
                 let ctl = ((self.encode()[0] as u32) & 1).wrapping_neg();
-                self.set_condneg(ctl);
+                self.set_cond_neg(ctl);
 
                 r
             }
@@ -2072,6 +2037,43 @@ macro_rules! define_fp_core {
         }
 
         /*
+         * Implementations of from methods from simple integer types
+         */
+
+        impl From<u64> for $typename {
+            fn from(x: u64) -> $typename {
+                let mut r = Self::ZERO;
+                r.0[0] = x;
+                r.set_mul(&Self::R2);
+                r
+            }
+        }
+
+        impl From<i64> for $typename {
+            fn from(x: i64) -> $typename {
+                let sx = (x >> 63) as u64;
+                let ax = ((x as u64) ^ sx).wrapping_sub(sx);
+                let mut r = Self::from(ax);
+                r.set_cond_neg(sx as u32);
+                r
+            }
+        }
+
+        impl From<u32> for $typename {
+            fn from(x: u32) -> $typename {
+                Self::from(x as u64)
+            }
+        }
+
+        impl From<i32> for $typename {
+            fn from(x: i32) -> $typename {
+                let mut r = Self::ONE;
+                r.set_mul_small(x);
+                r
+            }
+        }
+
+        /*
          * Implementations of all the traits needed to use the simple operators
          * (+, *, /...) on field element instances, with or without references.
          * as well as a display method.
@@ -2355,7 +2357,7 @@ macro_rules! define_fp_core {
             }
         }
 
-        impl $crate::traits::Fp for $typename {
+        impl $crate::traits::Fq for $typename {
             // Reexport constants for base field Trait
             const N: usize = Self::N;
             const ENCODED_LENGTH: usize = Self::ENCODED_LENGTH;
@@ -2365,26 +2367,6 @@ macro_rules! define_fp_core {
             const THREE: Self = Self::THREE;
             const FOUR: Self = Self::FOUR;
             const MINUS_ONE: Self = Self::MINUS_ONE;
-
-            /// Return the value x + i*0 for a given integer x of type `i32`.
-            fn from_i32(x: i32) -> Self {
-                <$typename>::from_i32(x)
-            }
-
-            /// Return the value x + i*0 for a given integer x of type `u32`.
-            fn from_u32(x: u32) -> Self {
-                <$typename>::from_u32(x)
-            }
-
-            /// Return the value x + i*0 for a given integer x of type `i64`.
-            fn from_i64(x: i64) -> Self {
-                <$typename>::from_i64(x)
-            }
-
-            /// Return the value x + i*0 for a given integer x of type `u64`.
-            fn from_u64(x: u64) -> Self {
-                <$typename>::from_u64(x)
-            }
 
             fn is_zero(self) -> u32 {
                 self.is_zero()
@@ -2446,6 +2428,75 @@ macro_rules! define_fp_core {
             fn set_invert(&mut self) {
                 self.set_invert()
             }
+            fn mul_small(self, k: i32) -> Self {
+                self.mul_small(k)
+            }
+            fn square(self) -> Self {
+                self.square()
+            }
+            fn n_square(self, n: u32) -> Self {
+                self.n_square(n)
+            }
+            fn invert(self) -> Self {
+                self.invert()
+            }
+            fn set_sqrt(&mut self) -> u32 {
+                self.set_sqrt()
+            }
+            fn sqrt(self) -> (Self, u32) {
+                self.sqrt()
+            }
+            fn legendre(self) -> i32 {
+                self.legendre()
+            }
+            fn is_square(self) -> u32 {
+                self.is_square()
+            }
+            fn batch_invert(xx: &mut [Self]) {
+                <$typename>::batch_invert(xx)
+            }
+
+            fn set_select(&mut self, a: &Self, b: &Self, ctl: u32) {
+                self.set_select(a, b, ctl)
+            }
+            fn set_cond(&mut self, rhs: &Self, ctl: u32) {
+                self.set_cond(rhs, ctl)
+            }
+            fn set_cond_neg(&mut self, ctl: u32) {
+                self.set_cond_neg(ctl)
+            }
+            fn select(a: &Self, b: &Self, ctl: u32) -> Self {
+                <$typename>::select(a, b, ctl)
+            }
+            fn cond_swap(a: &mut Self, b: &mut Self, ctl: u32) {
+                <$typename>::cond_swap(a, b, ctl)
+            }
+
+            fn encode(self) -> [u8; Self::ENCODED_LENGTH] {
+                self.encode()
+            }
+            fn decode(buf: &[u8]) -> (Self, u32) {
+                <$typename>::decode(buf)
+            }
+            fn decode_reduce(buf: &[u8]) -> Self {
+                <$typename>::decode_reduce(buf)
+            }
+
+            fn hashcode(self) -> u64 {
+                self.hashcode()
+            }
+        }
+
+        impl $crate::traits::FqRoots for $typename {
+            fn set_fourth_root(&mut self) -> u32 {
+                self.set_fourth_root()
+            }
+            fn fourth_root(self) -> (Self, u32) {
+                self.fourth_root()
+            }
+        }
+
+        impl $crate::traits::FqExp for $typename {
             fn set_pow(&mut self, e: &[u8], ebitlen: usize) {
                 self.set_pow(e, ebitlen)
             }
@@ -2460,18 +2511,6 @@ macro_rules! define_fp_core {
             }
             fn set_pow_pubexp(&mut self, e: &[u64; Self::N]) {
                 self.set_pow_pubexp(e)
-            }
-            fn mul_small(self, k: i32) -> Self {
-                self.mul_small(k)
-            }
-            fn square(self) -> Self {
-                self.square()
-            }
-            fn n_square(self, n: u32) -> Self {
-                self.n_square(n)
-            }
-            fn invert(self) -> Self {
-                self.invert()
             }
             fn pow(self, e: &[u8], ebitlen: usize) -> Self {
                 self.pow(e, ebitlen)
@@ -2488,65 +2527,14 @@ macro_rules! define_fp_core {
             fn pow_pubexp(self, e: &[u64; Self::N]) -> Self {
                 self.pow_pubexp(e)
             }
-            fn set_sqrt(&mut self) -> u32 {
-                self.set_sqrt()
-            }
-            fn set_fourth_root(&mut self) -> u32 {
-                self.set_fourth_root()
-            }
-            fn sqrt(self) -> (Self, u32) {
-                self.sqrt()
-            }
-            fn fourth_root(self) -> (Self, u32) {
-                self.fourth_root()
-            }
+        }
 
-            fn legendre(self) -> i32 {
-                self.legendre()
-            }
-
-            fn is_square(self) -> u32 {
-                self.is_square()
-            }
-            fn batch_invert(xx: &mut [Self]) {
-                <$typename>::batch_invert(xx)
-            }
-
-            fn set_select(&mut self, a: &Self, b: &Self, ctl: u32) {
-                self.set_select(a, b, ctl)
-            }
-            fn set_cond(&mut self, rhs: &Self, ctl: u32) {
-                self.set_cond(rhs, ctl)
-            }
-            fn set_condneg(&mut self, ctl: u32) {
-                self.set_condneg(ctl)
-            }
-            fn select(a: &Self, b: &Self, ctl: u32) -> Self {
-                <$typename>::select(a, b, ctl)
-            }
-            fn condswap(a: &mut Self, b: &mut Self, ctl: u32) {
-                <$typename>::condswap(a, b, ctl)
-            }
-
-            fn encode(self) -> [u8; Self::ENCODED_LENGTH] {
-                self.encode()
-            }
-            fn decode(buf: &[u8]) -> (Self, u32) {
-                <$typename>::decode(buf)
-            }
-            fn decode_reduce(buf: &[u8]) -> Self {
-                <$typename>::decode_reduce(buf)
-            }
-
+        impl $crate::traits::FqRnd for $typename {
             fn set_rand<R: ::rand_core::CryptoRng + ::rand_core::RngCore>(&mut self, rng: &mut R) {
                 self.set_rand(rng)
             }
             fn rand<R: ::rand_core::CryptoRng + ::rand_core::RngCore>(rng: &mut R) -> Self {
                 <$typename>::rand(rng)
-            }
-
-            fn hashcode(self) -> u64 {
-                self.hashcode()
             }
         }
     };
