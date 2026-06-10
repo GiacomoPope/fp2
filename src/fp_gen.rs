@@ -80,8 +80,25 @@ macro_rules! define_fp_core {
             const P1: u64 = Self::top_u32();
             const P1DIV_M: u64 =
                 1 + ((((((1u64 << 32) - Self::P1) as u128) << 64) / (Self::P1 as u128)) as u64);
-            const NUM1: usize = (2 * Self::BIT_LENGTH - 34) / 31;
-            const NUM2: usize = 2 * Self::BIT_LENGTH - 31 * Self::NUM1 - 2;
+            // const NUM1: usize = (2 * Self::BIT_LENGTH - 34) / 31;
+            // const NUM2: usize = 2 * Self::BIT_LENGTH - 31 * Self::NUM1 - 2;
+
+            // When the modulus has 32 bits or less, we can set NUM1 = 0
+            const NUM1: usize = {
+                if Self::BIT_LENGTH <= 32 {
+                    0
+                } else {
+                    (2 * Self::BIT_LENGTH - 34) / 31 // original formula, safe now
+                }
+            };
+
+            // NUM2 covers the remaining bit-length after NUM1 outer iterations.
+            const NUM2: usize = {
+                let remaining = (2 * Self::BIT_LENGTH).saturating_sub(31 * Self::NUM1);
+                if remaining >= 2 { remaining - 2 } else { 0 }
+            };
+
+            // Constant for correction after the binary GCD loop
             const TFIXDIV: Self = Self::const_mmul(
                 Self::const_mmul(Self::pow2mod(Self::NUM1 * 33 + 64 - Self::NUM2), Self::R2),
                 Self::R2,

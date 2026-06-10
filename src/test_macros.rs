@@ -1371,8 +1371,8 @@ macro_rules! define_fp2_tests {
                 let (zc0, zc1) = fp2_decode_components(&c.encode());
                 let za1 =
                     ::num_bigint::BigInt::from_bytes_le(::num_bigint::Sign::Plus, &a.x1.encode());
-                assert_eq!(zc0, zk, "iter {i}: set_x0_small x0 wrong");
-                assert_eq!(zc1, za1, "iter {i}: set_x0_small changed x1");
+                assert_eq!(zc0, pos_mod(&zk, &zp), "iter {i}: set_x0_small x0 wrong");
+                assert_eq!(zc1, pos_mod(&za1, &zp), "iter {i}: set_x0_small changed x1");
 
                 // set_x1_small(k): x1 becomes k mod p, x0 is unchanged.
                 let mut c = a;
@@ -1380,8 +1380,8 @@ macro_rules! define_fp2_tests {
                 let (zc0, zc1) = fp2_decode_components(&c.encode());
                 let za0 =
                     ::num_bigint::BigInt::from_bytes_le(::num_bigint::Sign::Plus, &a.x0.encode());
-                assert_eq!(zc0, za0, "iter {i}: set_x1_small changed x0");
-                assert_eq!(zc1, zk, "iter {i}: set_x1_small x1 wrong");
+                assert_eq!(zc0, pos_mod(&za0, &zp), "iter {i}: set_x1_small changed x0");
+                assert_eq!(zc1, pos_mod(&zk, &zp), "iter {i}: set_x1_small x1 wrong");
             }
 
             // Zero scalar: set_x0_small(0) must zero x0; set_x1_small(0) must zero x1.
