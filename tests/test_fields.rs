@@ -1,6 +1,14 @@
 #[cfg(feature = "test-utils")]
 #[cfg(test)]
 mod tests {
+    mod fp_small_tests {
+        // p = 2^61 - 1
+        const MODULUS: [u64; 1] = [0x1FFFFFFFFFFFFFFF];
+        fp2::define_fp_core!(typename = FpSml, modulus = MODULUS,);
+        fp2::define_fp2_from_type!(typename = FpSmlExt, base_field = FpSml,);
+        fp2::define_fp_tests!(FpSml);
+        fp2::define_fp2_tests!(FpSmlExt, MODULUS, 4);
+    }
     // Random prime with no nice properties for Montgomery friendliness
     mod fp_ugly_tests {
         // Field modulus

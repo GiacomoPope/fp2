@@ -73,10 +73,6 @@ macro_rules! define_fp_core {
             pub const BIT_LENGTH: usize = Self::mod_bitlen();
             pub const MODULUS: [u64; Self::N] = $modulus;
 
-            // Multiplier for decode_reduce().
-            const CLEN: usize = 8 * (Self::N - 1);
-            const TDEC: Self = Self::pow2mod((2 * Self::N - 1) * 64);
-
             // Constants used for internal arithmetic
             const P0I: u64 = Self::ninv64(Self::MODULUS[0]);
             const R: Self = Self::pow2mod(Self::N * 64);
@@ -94,6 +90,21 @@ macro_rules! define_fp_core {
             const FOURTH_ROOT_EXP: [u64; Self::N] = Self::const_fourth_root_exp();
             pub const SUM_OF_PRODUCTS_ADDITIONAL_SUB: bool = Self::sum_of_products_check();
 
+            /// Encoding length of a field element (in bytes). All elements
+            /// always encode into exactly that many bytes. Encoding is
+            /// canonical: a given field element has a unique valid encoding,
+            /// and the decoding process verifies that this specific encoding
+            /// was used.
+            pub const ENCODED_LENGTH: usize = (Self::BIT_LENGTH + 7) >> 3;
+
+            // Multiplier for decode_reduce().
+            const CLEN: usize = if Self::N == 1 {
+                Self::ENCODED_LENGTH - 1
+            } else {
+                8 * (Self::N - 1)
+            };
+            const TDEC: Self = Self::pow2mod(Self::N * 64 + 8 * Self::CLEN);
+
             // Predefined constants used externally
             pub const ZERO: Self = Self([0u64; Self::N]);
             pub const ONE: Self = Self::R;
@@ -101,13 +112,6 @@ macro_rules! define_fp_core {
             pub const THREE: Self = Self::const_small(3);
             pub const FOUR: Self = Self::const_small(4);
             pub const MINUS_ONE: Self = Self::const_neg(Self::R);
-
-            /// Encoding length of a field element (in bytes). All elements
-            /// always encode into exactly that many bytes. Encoding is
-            /// canonical: a given field element has a unique valid encoding,
-            /// and the decoding process verifies that this specific encoding
-            /// was used.
-            pub const ENCODED_LENGTH: usize = (Self::BIT_LENGTH + 7) >> 3;
 
             pub const fn new(input: [u64; Self::N]) -> Self {
                 return Self(input);
@@ -336,6 +340,13 @@ macro_rules! define_fp_core {
                 // This impacts all the code in the crate, and is thus
                 // probably not a very good idea.
 
+                // TODO handle this in a different way?
+                if Self::N == 1 {
+                    let r = *self;
+                    self.set_mul(&r);
+                    return;
+                }
+
                 // Compute the square over integers.
                 let mut t = [0u64; Self::N << 1];
 
@@ -529,6 +540,12 @@ macro_rules! define_fp_core {
             /// Multiply this value by a small signed integer k.
             #[inline]
             pub fn set_mul_small(&mut self, k: i32) {
+                // Special case: if the modulus fits in one word, just convert
+                if Self::N == 1 {
+                    *self *= Self::from(k as i64);
+                    return;
+                }
+
                 // Get the absolute value of the multiplier (but remember the sign).
                 let sk = (k >> 31) as u32;
                 let ak = ((k as u32) ^ sk).wrapping_sub(sk);
@@ -2043,8 +2060,12 @@ macro_rules! define_fp_core {
         impl From<u64> for $typename {
             fn from(x: u64) -> $typename {
                 let mut r = Self::ZERO;
-                r.0[0] = x;
-                r.set_mul(&Self::R2);
+                if Self::N == 1 {
+                    r.set_decode_reduce(&x.to_le_bytes());
+                } else {
+                    r.0[0] = x;
+                    r.set_mul(&Self::R2);
+                }
                 r
             }
         }

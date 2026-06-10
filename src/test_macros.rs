@@ -401,6 +401,12 @@ macro_rules! define_fp_tests {
             );
         }
 
+        /// The big int library returns a negative value if the input
+        /// is negative, so this is a small helper to avoid that
+        fn pos_mod(a: &::num_bigint::BigInt, m: &::num_bigint::BigInt) -> ::num_bigint::BigInt {
+            ((a % m) + m) % m
+        }
+
         /// `from_i32`, `from_u32`, `from_i64`, `from_u64`.
         #[test]
         fn fp_test_from_integer() {
@@ -420,7 +426,7 @@ macro_rules! define_fp_tests {
                 );
                 assert_eq!(
                     zc,
-                    (k32.to_bigint().unwrap() + &zp) % &zp,
+                    pos_mod(&k32.to_bigint().unwrap(), &zp),
                     "iter {i}: from_i32 failed"
                 );
 
@@ -428,7 +434,11 @@ macro_rules! define_fp_tests {
                     ::num_bigint::Sign::Plus,
                     &<$Fp>::from(ku32).encode(),
                 );
-                assert_eq!(zc, ku32.to_bigint().unwrap(), "iter {i}: from_u32 failed");
+                assert_eq!(
+                    zc,
+                    pos_mod(&ku32.to_bigint().unwrap(), &zp),
+                    "iter {i}: from_u32 failed"
+                );
 
                 let zc = ::num_bigint::BigInt::from_bytes_le(
                     ::num_bigint::Sign::Plus,
@@ -436,7 +446,7 @@ macro_rules! define_fp_tests {
                 );
                 assert_eq!(
                     zc,
-                    (k64.to_bigint().unwrap() + &zp) % &zp,
+                    pos_mod(&k64.to_bigint().unwrap(), &zp),
                     "iter {i}: from_i64 failed"
                 );
 
@@ -444,7 +454,11 @@ macro_rules! define_fp_tests {
                     ::num_bigint::Sign::Plus,
                     &<$Fp>::from(ku64).encode(),
                 );
-                assert_eq!(zc, ku64.to_bigint().unwrap(), "iter {i}: from_u64 failed");
+                assert_eq!(
+                    zc,
+                    pos_mod(&ku64.to_bigint().unwrap(), &zp),
+                    "iter {i}: from_u64 failed"
+                );
             }
 
             // Zero inputs must give the zero element.
@@ -1261,12 +1275,12 @@ macro_rules! define_fp2_tests {
                     fp2_decode_components(&<$Fp2>::from_i32_pair(x0_i32, x1_i32).encode());
                 assert_eq!(
                     zc0,
-                    (x0_i32.to_bigint().unwrap() + &zp) % &zp,
+                    pos_mod(&x0_i32.to_bigint().unwrap(), &zp),
                     "iter {i}: from_i32_pair x0"
                 );
                 assert_eq!(
                     zc1,
-                    (x1_i32.to_bigint().unwrap() + &zp) % &zp,
+                    pos_mod(&x1_i32.to_bigint().unwrap(), &zp),
                     "iter {i}: from_i32_pair x1"
                 );
 
@@ -1276,12 +1290,12 @@ macro_rules! define_fp2_tests {
                     fp2_decode_components(&<$Fp2>::from_u32_pair(x0_u32, x1_u32).encode());
                 assert_eq!(
                     zc0,
-                    x0_u32.to_bigint().unwrap(),
+                    pos_mod(&x0_u32.to_bigint().unwrap(), &zp),
                     "iter {i}: from_u32_pair x0"
                 );
                 assert_eq!(
                     zc1,
-                    x1_u32.to_bigint().unwrap(),
+                    pos_mod(&x1_u32.to_bigint().unwrap(), &zp),
                     "iter {i}: from_u32_pair x1"
                 );
 
@@ -1291,12 +1305,12 @@ macro_rules! define_fp2_tests {
                     fp2_decode_components(&<$Fp2>::from_i64_pair(x0_i64, x1_i64).encode());
                 assert_eq!(
                     zc0,
-                    (x0_i64.to_bigint().unwrap() + &zp) % &zp,
+                    ((x0_i64.to_bigint().unwrap() % &zp) + &zp) % &zp,
                     "iter {i}: from_i64_pair x0"
                 );
                 assert_eq!(
                     zc1,
-                    (x1_i64.to_bigint().unwrap() + &zp) % &zp,
+                    ((x1_i64.to_bigint().unwrap() % &zp) + &zp) % &zp,
                     "iter {i}: from_i64_pair x1"
                 );
 
@@ -1306,12 +1320,12 @@ macro_rules! define_fp2_tests {
                     fp2_decode_components(&<$Fp2>::from_u64_pair(x0_u64, x1_u64).encode());
                 assert_eq!(
                     zc0,
-                    x0_u64.to_bigint().unwrap(),
+                    x0_u64.to_bigint().unwrap() % &zp,
                     "iter {i}: from_u64_pair x0"
                 );
                 assert_eq!(
                     zc1,
-                    x1_u64.to_bigint().unwrap(),
+                    x1_u64.to_bigint().unwrap() % &zp,
                     "iter {i}: from_u64_pair x1"
                 );
             }
