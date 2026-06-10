@@ -46,6 +46,12 @@ macro_rules! define_fp_tests {
             vec![0u8; (<$Fp>::ENCODED_LENGTH + 64) & !31usize]
         }
 
+        /// The big int library returns a negative value if the input
+        /// is negative, so this is a small helper to avoid that
+        fn pos_mod(a: &::num_bigint::BigInt, m: &::num_bigint::BigInt) -> ::num_bigint::BigInt {
+            ((a % m) + m) % m
+        }
+
         /// `encode` / `decode_reduce`: round-trip and canonical reduction.
         #[test]
         fn fp_test_encode_decode() {
@@ -399,12 +405,6 @@ macro_rules! define_fp_tests {
                 u32::MAX,
                 "mul_small(0, k) should be zero"
             );
-        }
-
-        /// The big int library returns a negative value if the input
-        /// is negative, so this is a small helper to avoid that
-        fn pos_mod(a: &::num_bigint::BigInt, m: &::num_bigint::BigInt) -> ::num_bigint::BigInt {
-            ((a % m) + m) % m
         }
 
         /// `from_i32`, `from_u32`, `from_i64`, `from_u64`.
@@ -958,6 +958,12 @@ macro_rules! define_fp2_tests {
             let mut nqr: $Fp2 = <$Fp2>::from($nqr);
             nqr += <$Fp2>::ZETA;
             nqr
+        }
+
+        /// The big int library returns a negative value if the input
+        /// is negative, so this is a small helper to avoid that
+        fn pos_mod(a: &::num_bigint::BigInt, m: &::num_bigint::BigInt) -> ::num_bigint::BigInt {
+            ((a % m) + m) % m
         }
 
         // ----------------------------------------------------------------
