@@ -46,6 +46,12 @@ macro_rules! define_fp_tests {
             vec![0u8; (<$Fp>::ENCODED_LENGTH + 64) & !31usize]
         }
 
+        /// The big int library returns a negative value if the input
+        /// is negative, so this is a small helper to avoid that
+        fn fp_pos_mod(a: &::num_bigint::BigInt, m: &::num_bigint::BigInt) -> ::num_bigint::BigInt {
+            ((a % m) + m) % m
+        }
+
         /// `encode` / `decode_reduce`: round-trip and canonical reduction.
         #[test]
         fn fp_test_encode_decode() {
@@ -401,12 +407,6 @@ macro_rules! define_fp_tests {
             );
         }
 
-        /// The big int library returns a negative value if the input
-        /// is negative, so this is a small helper to avoid that
-        fn pos_mod(a: &::num_bigint::BigInt, m: &::num_bigint::BigInt) -> ::num_bigint::BigInt {
-            ((a % m) + m) % m
-        }
-
         /// `from_i32`, `from_u32`, `from_i64`, `from_u64`.
         #[test]
         fn fp_test_from_integer() {
@@ -426,7 +426,7 @@ macro_rules! define_fp_tests {
                 );
                 assert_eq!(
                     zc,
-                    pos_mod(&k32.to_bigint().unwrap(), &zp),
+                    fp_pos_mod(&k32.to_bigint().unwrap(), &zp),
                     "iter {i}: from_i32 failed"
                 );
 
@@ -436,7 +436,7 @@ macro_rules! define_fp_tests {
                 );
                 assert_eq!(
                     zc,
-                    pos_mod(&ku32.to_bigint().unwrap(), &zp),
+                    fp_pos_mod(&ku32.to_bigint().unwrap(), &zp),
                     "iter {i}: from_u32 failed"
                 );
 
@@ -446,7 +446,7 @@ macro_rules! define_fp_tests {
                 );
                 assert_eq!(
                     zc,
-                    pos_mod(&k64.to_bigint().unwrap(), &zp),
+                    fp_pos_mod(&k64.to_bigint().unwrap(), &zp),
                     "iter {i}: from_i64 failed"
                 );
 
@@ -456,7 +456,7 @@ macro_rules! define_fp_tests {
                 );
                 assert_eq!(
                     zc,
-                    pos_mod(&ku64.to_bigint().unwrap(), &zp),
+                    fp_pos_mod(&ku64.to_bigint().unwrap(), &zp),
                     "iter {i}: from_u64 failed"
                 );
             }
@@ -960,6 +960,12 @@ macro_rules! define_fp2_tests {
             nqr
         }
 
+        /// The big int library returns a negative value if the input
+        /// is negative, so this is a small helper to avoid that
+        fn fp2_pos_mod(a: &::num_bigint::BigInt, m: &::num_bigint::BigInt) -> ::num_bigint::BigInt {
+            ((a % m) + m) % m
+        }
+
         // ----------------------------------------------------------------
         // Individual tests
         // ----------------------------------------------------------------
@@ -1275,12 +1281,12 @@ macro_rules! define_fp2_tests {
                     fp2_decode_components(&<$Fp2>::from_i32_pair(x0_i32, x1_i32).encode());
                 assert_eq!(
                     zc0,
-                    pos_mod(&x0_i32.to_bigint().unwrap(), &zp),
+                    fp2_pos_mod(&x0_i32.to_bigint().unwrap(), &zp),
                     "iter {i}: from_i32_pair x0"
                 );
                 assert_eq!(
                     zc1,
-                    pos_mod(&x1_i32.to_bigint().unwrap(), &zp),
+                    fp2_pos_mod(&x1_i32.to_bigint().unwrap(), &zp),
                     "iter {i}: from_i32_pair x1"
                 );
 
@@ -1290,12 +1296,12 @@ macro_rules! define_fp2_tests {
                     fp2_decode_components(&<$Fp2>::from_u32_pair(x0_u32, x1_u32).encode());
                 assert_eq!(
                     zc0,
-                    pos_mod(&x0_u32.to_bigint().unwrap(), &zp),
+                    fp2_pos_mod(&x0_u32.to_bigint().unwrap(), &zp),
                     "iter {i}: from_u32_pair x0"
                 );
                 assert_eq!(
                     zc1,
-                    pos_mod(&x1_u32.to_bigint().unwrap(), &zp),
+                    fp2_pos_mod(&x1_u32.to_bigint().unwrap(), &zp),
                     "iter {i}: from_u32_pair x1"
                 );
 
@@ -1371,8 +1377,16 @@ macro_rules! define_fp2_tests {
                 let (zc0, zc1) = fp2_decode_components(&c.encode());
                 let za1 =
                     ::num_bigint::BigInt::from_bytes_le(::num_bigint::Sign::Plus, &a.x1.encode());
-                assert_eq!(zc0, pos_mod(&zk, &zp), "iter {i}: set_x0_small x0 wrong");
-                assert_eq!(zc1, pos_mod(&za1, &zp), "iter {i}: set_x0_small changed x1");
+                assert_eq!(
+                    zc0,
+                    fp2_pos_mod(&zk, &zp),
+                    "iter {i}: set_x0_small x0 wrong"
+                );
+                assert_eq!(
+                    zc1,
+                    fp2_pos_mod(&za1, &zp),
+                    "iter {i}: set_x0_small changed x1"
+                );
 
                 // set_x1_small(k): x1 becomes k mod p, x0 is unchanged.
                 let mut c = a;
@@ -1380,8 +1394,16 @@ macro_rules! define_fp2_tests {
                 let (zc0, zc1) = fp2_decode_components(&c.encode());
                 let za0 =
                     ::num_bigint::BigInt::from_bytes_le(::num_bigint::Sign::Plus, &a.x0.encode());
-                assert_eq!(zc0, pos_mod(&za0, &zp), "iter {i}: set_x1_small changed x0");
-                assert_eq!(zc1, pos_mod(&zk, &zp), "iter {i}: set_x1_small x1 wrong");
+                assert_eq!(
+                    zc0,
+                    fp2_pos_mod(&za0, &zp),
+                    "iter {i}: set_x1_small changed x0"
+                );
+                assert_eq!(
+                    zc1,
+                    fp2_pos_mod(&zk, &zp),
+                    "iter {i}: set_x1_small x1 wrong"
+                );
             }
 
             // Zero scalar: set_x0_small(0) must zero x0; set_x1_small(0) must zero x1.
