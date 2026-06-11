@@ -8,8 +8,8 @@
 #[cfg_attr(not(feature = "test-utils"), allow(unused_macros))]
 macro_rules! define_fp_tests {
     ($Fp:ty) => {
-        use ::num_bigint::ToBigInt as _;
-        use ::sha2::Digest as _;
+        use num_bigint::ToBigInt as _;
+        use sha2::Digest as _;
 
         // ----------------------------------------------------------------
         // Shared test-data helpers
@@ -900,8 +900,8 @@ macro_rules! define_fp_tests {
 #[cfg_attr(not(feature = "test-utils"), allow(unused_macros))]
 macro_rules! define_fp2_tests {
     ($Fp2:ty, $modulus:expr, $nqr:literal) => {
-        use ::num_bigint::ToBigInt as _;
-        use ::sha2::Digest as _;
+        use num_bigint::ToBigInt as _;
+        use sha2::Digest as _;
 
         // ----------------------------------------------------------------
         // Shared test-data helpers
