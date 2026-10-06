@@ -870,8 +870,7 @@ macro_rules! define_fp_tests {
 
         #[test]
         fn test_fp_trait_static_methods() {
-            use fp2::traits::Fq;
-            fn via_trait<F: Fq>(x: F, y: F) {
+            fn via_trait<F: $crate::traits::Fq>(x: F, y: F) {
                 let mut elems = [F::ONE, F::TWO, F::THREE];
                 F::batch_invert(&mut elems);
                 let _ = F::select(&F::ZERO, &F::ONE, 0);
@@ -1726,8 +1725,7 @@ macro_rules! define_fp2_tests {
 
         #[test]
         fn test_fp2_trait_static_methods() {
-            use fp2::traits::Fp2;
-            fn via_trait<F: Fp2>(x: F, y: F) {
+            fn via_trait<F: $crate::traits::Fp2>(x: F, y: F) {
                 // Static methods
                 let _ = F::from_i32_pair(1, 2);
                 let _ = F::from_u32_pair(1, 2);

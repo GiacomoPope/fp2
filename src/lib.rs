@@ -14,3 +14,4 @@ pub mod fp_gen;
 pub mod test_macros;
 pub mod traits;
 pub mod utils64;
+pub use rand_core;

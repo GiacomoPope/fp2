@@ -329,9 +329,9 @@ pub trait Fp2: Fq + FqExp + FqRoots + FqRnd {
     ///
     /// Explicitly, this involves computing:
     /// - A table dlog_table of indicies corresponding to where to split
-    ///   the dlog recursively of type Vec<usize>
+    ///   the dlog recursively of type `Vec<usize>`
     /// - A table of Fp2 elements `gpp[j] = g^(2^dlog_table[j])` of type
-    ///   of type `Vec<Self>`
+    ///   `Vec<Self>`
     ///
     /// Note that the first value (`gpp[0]`) is `g` itself, and the last one must
     /// be `-1` (otherwise, `g` does not have order exactly 2^e).

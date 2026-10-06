@@ -56,6 +56,8 @@ Tests can be run:
 cargo test --features test-utils
 ```
 
+The test macros `define_fp_tests!` and `define_fp2_tests!` can also be used to test your own field types. They require `sha2` and `num-bigint` in your `[dev-dependencies]`.
+
 ### Benchmarks
 
 Benchmarks can be run with:

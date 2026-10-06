@@ -1560,7 +1560,7 @@ macro_rules! define_fp_core {
 
             /// Set this structure to a random field element (indistinguishable
             /// from uniform generation).
-            pub fn set_rand<T: ::rand_core::CryptoRng + ::rand_core::RngCore>(
+            pub fn set_rand<T: $crate::rand_core::CryptoRng + $crate::rand_core::RngCore>(
                 &mut self,
                 rng: &mut T,
             ) {
@@ -1571,7 +1571,9 @@ macro_rules! define_fp_core {
 
             /// Return a new random field element (indistinguishable from
             /// uniform generation).
-            pub fn rand<T: ::rand_core::CryptoRng + ::rand_core::RngCore>(rng: &mut T) -> Self {
+            pub fn rand<T: $crate::rand_core::CryptoRng + $crate::rand_core::RngCore>(
+                rng: &mut T,
+            ) -> Self {
                 let mut x = Self::ZERO;
                 x.set_rand(rng);
                 x
@@ -2572,10 +2574,15 @@ macro_rules! define_fp_core {
         }
 
         impl $crate::traits::FqRnd for $typename {
-            fn set_rand<R: ::rand_core::CryptoRng + ::rand_core::RngCore>(&mut self, rng: &mut R) {
+            fn set_rand<R: $crate::rand_core::CryptoRng + $crate::rand_core::RngCore>(
+                &mut self,
+                rng: &mut R,
+            ) {
                 self.set_rand(rng)
             }
-            fn rand<R: ::rand_core::CryptoRng + ::rand_core::RngCore>(rng: &mut R) -> Self {
+            fn rand<R: $crate::rand_core::CryptoRng + $crate::rand_core::RngCore>(
+                rng: &mut R,
+            ) -> Self {
                 <$typename>::rand(rng)
             }
         }

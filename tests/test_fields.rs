@@ -10,6 +10,16 @@ mod tests {
         fp2::define_fp2_tests!(FpTinyExt, MODULUS, 2);
     }
 
+    // Regression: caller types named like the traits must not be shadowed
+    // by anything the test macros bring into scope.
+    mod trait_named_types_tests {
+        const MODULUS: [u64; 1] = [6143];
+        fp2::define_fp_core!(typename = Fq, modulus = MODULUS,);
+        fp2::define_fp2_from_type!(typename = Fp2, base_field = Fq,);
+        fp2::define_fp_tests!(Fq);
+        fp2::define_fp2_tests!(Fp2, MODULUS, 2);
+    }
+
     mod fp_small_tests {
         // p = 2^61 - 1
         const MODULUS: [u64; 1] = [0x1FFFFFFFFFFFFFFF];
