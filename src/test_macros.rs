@@ -98,7 +98,7 @@ macro_rules! define_fp_tests {
             assert_eq!(a.equals(&b), u32::MAX, "decode round-trip value mismatch");
 
             // Zero is a valid encoding and must round-trip to the zero element.
-            let (zero, ok) = <$Fp>::decode(&vec![0u8; <$Fp>::ENCODED_LENGTH]);
+            let (zero, ok) = <$Fp>::decode(&[0u8; <$Fp>::ENCODED_LENGTH]);
             assert_eq!(ok, u32::MAX, "decode of zero encoding should succeed");
             assert_eq!(
                 zero.is_zero(),

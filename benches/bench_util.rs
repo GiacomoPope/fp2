@@ -2,12 +2,12 @@ use rand_core::{CryptoRng, RngCore};
 use sha2::{Digest, Sha512};
 
 // Fake RNG for benchmarks only. NOT ACTUALLY SECURE! DO NOT USE!
-pub struct DRNG {
+pub struct Drng {
     buf: [u8; 64],
     ptr: usize,
 }
 
-impl DRNG {
+impl Drng {
     pub fn new() -> Self {
         Self::from_seed(&u64::MAX.to_le_bytes())
     }
@@ -24,7 +24,13 @@ impl DRNG {
     }
 }
 
-impl RngCore for DRNG {
+impl Default for Drng {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl RngCore for Drng {
     fn next_u32(&mut self) -> u32 {
         let mut buf = [0u8; 4];
         self.fill_bytes(&mut buf);
@@ -50,7 +56,7 @@ impl RngCore for DRNG {
             off += clen;
             if self.ptr == 32 {
                 let mut sh = Sha512::new();
-                sh.update(&self.buf);
+                sh.update(self.buf);
                 self.buf[..].copy_from_slice(&sh.finalize());
                 self.ptr = 0;
             }
@@ -58,4 +64,4 @@ impl RngCore for DRNG {
     }
 }
 
-impl CryptoRng for DRNG {}
+impl CryptoRng for Drng {}

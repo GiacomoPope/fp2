@@ -36,7 +36,7 @@ mod tests {
 
         #[test]
         fn check_sum_of_products_flag() {
-            assert!(!FpUgly::SUM_OF_PRODUCTS_ADDITIONAL_SUB);
+            const { assert!(!FpUgly::SUM_OF_PRODUCTS_ADDITIONAL_SUB) };
         }
     }
 
@@ -82,7 +82,7 @@ mod tests {
 
         #[test]
         fn check_sum_of_products_flag() {
-            assert!(!Fp127::SUM_OF_PRODUCTS_ADDITIONAL_SUB);
+            const { assert!(!Fp127::SUM_OF_PRODUCTS_ADDITIONAL_SUB) };
         }
     }
 
@@ -111,7 +111,7 @@ mod tests {
 
         #[test]
         fn check_sum_of_products_flag() {
-            assert!(!Fp251::SUM_OF_PRODUCTS_ADDITIONAL_SUB);
+            const { assert!(!Fp251::SUM_OF_PRODUCTS_ADDITIONAL_SUB) };
         }
     }
 
@@ -144,7 +144,7 @@ mod tests {
 
         #[test]
         fn check_sum_of_products_flag() {
-            assert!(!Fp383::SUM_OF_PRODUCTS_ADDITIONAL_SUB);
+            const { assert!(!Fp383::SUM_OF_PRODUCTS_ADDITIONAL_SUB) };
         }
     }
 
@@ -174,7 +174,7 @@ mod tests {
 
         #[test]
         fn check_sum_of_products_flag() {
-            assert!(!Fp434::SUM_OF_PRODUCTS_ADDITIONAL_SUB);
+            const { assert!(!Fp434::SUM_OF_PRODUCTS_ADDITIONAL_SUB) };
         }
     }
 
@@ -211,7 +211,7 @@ mod tests {
 
         #[test]
         fn check_sum_of_products_flag() {
-            assert!(Fp896::SUM_OF_PRODUCTS_ADDITIONAL_SUB);
+            const { assert!(Fp896::SUM_OF_PRODUCTS_ADDITIONAL_SUB) };
         }
     }
 
@@ -251,7 +251,7 @@ mod tests {
 
         #[test]
         fn check_sum_of_products_flag() {
-            assert!(!Fp1554::SUM_OF_PRODUCTS_ADDITIONAL_SUB);
+            const { assert!(!Fp1554::SUM_OF_PRODUCTS_ADDITIONAL_SUB) };
         }
     }
 

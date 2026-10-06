@@ -3,7 +3,7 @@ mod bench_util;
 macro_rules! define_fp_benchmarks {
     ($Fq:ty) => {
         fn benchmark_fp_mul(c: &mut Criterion) {
-            let mut rng = crate::bench_util::DRNG::new();
+            let mut rng = crate::bench_util::Drng::new();
 
             let x = <$Fq>::rand(&mut rng);
             let y = <$Fq>::rand(&mut rng);
@@ -13,7 +13,7 @@ macro_rules! define_fp_benchmarks {
         }
 
         fn benchmark_sum_of_products(c: &mut Criterion) {
-            let mut rng = crate::bench_util::DRNG::new();
+            let mut rng = crate::bench_util::Drng::new();
 
             let x = <$Fq>::rand(&mut rng);
             let y = <$Fq>::rand(&mut rng);
@@ -47,7 +47,7 @@ macro_rules! define_fp_benchmarks {
 macro_rules! define_fp2_benchmarks {
     ($Fq:ty) => {
         fn benchmark_sop_fp2_mul(c: &mut Criterion) {
-            let mut rng = crate::bench_util::DRNG::new();
+            let mut rng = crate::bench_util::Drng::new();
 
             let x = <$Fq>::rand(&mut rng);
             let y = <$Fq>::rand(&mut rng);
@@ -62,7 +62,7 @@ macro_rules! define_fp2_benchmarks {
         }
 
         fn benchmark_school_fp2_mul(c: &mut Criterion) {
-            let mut rng = crate::bench_util::DRNG::new();
+            let mut rng = crate::bench_util::Drng::new();
 
             let x = <$Fq>::rand(&mut rng);
             let y = <$Fq>::rand(&mut rng);

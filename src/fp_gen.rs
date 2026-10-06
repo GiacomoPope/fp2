@@ -49,6 +49,9 @@ macro_rules! define_fp_core {
         // I have gone with option two as it makes the macro input cleaner and most
         // of the time smaller moduli are used and the compile time is not an issue.
         #[allow(long_running_const_eval)]
+        // Loops such as `for i in 1..Self::N` are empty (and `% Self::CLEN`
+        // is `% 1`) for single-limb moduli, which clippy rejects.
+        #[allow(clippy::reversed_empty_ranges, clippy::modulo_one)]
         impl $typename {
             // IMPLEMENTATION NOTES
             // --------------------
