@@ -1,8 +1,9 @@
 [package]
 keywords = ["finite", "field", "isogeny", "isogenies"]
 name = "fp2"
-version = "0.4.5"
+version = "0.5.0"
 edition = "2024"
+rust-version = "1.85"
 license = "MIT OR Apache-2.0"
 categories = ["cryptography"]
 authors = ["Giacomo Pope <giacomopope@gmail.com>"]

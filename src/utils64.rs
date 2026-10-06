@@ -8,7 +8,9 @@
 pub fn addcarry_u64(x: u64, y: u64, c: u8) -> (u64, u8) {
     use core::arch::x86_64::_addcarry_u64;
     let mut d = 0u64;
-    let cc = _addcarry_u64(c, x, y, &mut d);
+    // This is safe in 1.93, but not for older compiler versions
+    #[allow(unused_unsafe)]
+    let cc = unsafe { _addcarry_u64(c, x, y, &mut d) };
     (d, cc)
 }
 
@@ -27,7 +29,9 @@ pub const fn addcarry_u64(x: u64, y: u64, c: u8) -> (u64, u8) {
 pub fn subborrow_u64(x: u64, y: u64, c: u8) -> (u64, u8) {
     use core::arch::x86_64::_subborrow_u64;
     let mut d = 0u64;
-    let cc = _subborrow_u64(c, x, y, &mut d);
+    // This is safe in 1.93, but not for older compiler versions
+    #[allow(unused_unsafe)]
+    let cc = unsafe { _subborrow_u64(c, x, y, &mut d) };
     (d, cc)
 }
 
