@@ -30,9 +30,8 @@ pub trait Fq:
     /// The length of the encoded representation of the finite field element.
     const ENCODED_LENGTH: usize;
 
-    /// The number of u64 limbs needed to represent the finite field element.
-    // TODO: i dont like including this, maybe refactor this away.
-    const N: usize;
+    /// The encoded representation of a field element, `[u8; Self::ENCODED_LENGTH]`.
+    type Encoded: Copy + AsRef<[u8]> + AsMut<[u8]>;
 
     /// Predefined constant element representing the value 0.
     const ZERO: Self;
@@ -171,7 +170,7 @@ pub trait Fq:
 
     /// Encode this value into bytes. Encoding uses little-endian, has
     /// a fixed size (for a given field), and is canonical.
-    fn encode(self) -> [u8; Self::ENCODED_LENGTH];
+    fn encode(self) -> Self::Encoded;
 
     /// Decode the provided bytes into a field element. Returned values
     /// are the element and `0xFFFFFFFF` on success, or the zero element and
@@ -229,8 +228,9 @@ pub trait FqExp: Fq {
     fn set_pow_u64(&mut self, e: u64, ebitlen: usize);
 
     /// Raise this value to the provided exponent. The exponent is non-zero
-    /// and is public. The exponent is encoded over N 64-bit limbs.
-    fn set_pow_pubexp(&mut self, e: &[u64; Self::N]);
+    /// and is public. The exponent is encoded over 64-bit limbs
+    /// (little-endian) and may have any length.
+    fn set_pow_pubexp(&mut self, e: &[u64]);
 
     /// Raise this value to the power `e`. The exponent is considered
     /// non-secret.
@@ -257,8 +257,9 @@ pub trait FqExp: Fq {
     fn pow_u64_vartime(self, e: u64) -> Self;
 
     /// Return this value to the provided exponent. The exponent is non-zero
-    /// and is public. The exponent is encoded over N 64-bit limbs.
-    fn pow_pubexp(self, e: &[u64; Self::N]) -> Self;
+    /// and is public. The exponent is encoded over 64-bit limbs
+    /// (little-endian) and may have any length.
+    fn pow_pubexp(self, e: &[u64]) -> Self;
 }
 
 /// Traits for obtaining random elements in a finite field

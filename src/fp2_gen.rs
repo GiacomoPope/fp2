@@ -920,8 +920,9 @@ macro_rules! define_fp2_from_type {
             }
 
             /// Raise this value to the provided exponent. The exponent is non-zero
-            /// and is public. The exponent is encoded over N 64-bit limbs.
-            pub fn set_pow_pubexp(&mut self, e: &[u64; <$Fp>::N]) {
+            /// and is public. The exponent is encoded over 64-bit limbs
+            /// (little-endian) and may have any length.
+            pub fn set_pow_pubexp(&mut self, e: &[u64]) {
                 // Make a 4-bit window; win[i] contains x^(i+1)
                 let mut win = [Self::ZERO; 15];
                 win[0] = *self;
@@ -934,8 +935,7 @@ macro_rules! define_fp2_from_type {
                 // Explore 4-bit chunks of the exponent, high to low. Skip leading
                 // chunks of value 0.
                 let mut z = false;
-                for i in (0..<$Fp>::N).rev() {
-                    let ew = e[i];
+                for &ew in e.iter().rev() {
                     for j in (0..16).rev() {
                         if z {
                             self.set_n_square(4);
@@ -957,8 +957,9 @@ macro_rules! define_fp2_from_type {
             }
 
             /// Return this value to the provided exponent. The exponent is non-zero
-            /// and is public. The exponent is encoded over N 64-bit limbs.
-            pub fn pow_pubexp(self, e: &[u64; <$Fp>::N]) -> Self {
+            /// and is public. The exponent is encoded over 64-bit limbs
+            /// (little-endian) and may have any length.
+            pub fn pow_pubexp(self, e: &[u64]) -> Self {
                 let mut r = self;
                 r.set_pow_pubexp(e);
                 r
@@ -1517,8 +1518,8 @@ macro_rules! define_fp2_from_type {
 
         impl $crate::traits::Fq for $typename {
             // Reexport constants for base field Trait
-            const N: usize = <$Fp>::N;
             const ENCODED_LENGTH: usize = Self::ENCODED_LENGTH;
+            type Encoded = [u8; Self::ENCODED_LENGTH];
             const ZERO: Self = Self::ZERO;
             const ONE: Self = Self::ONE;
             const TWO: Self = Self::TWO;
@@ -1625,7 +1626,7 @@ macro_rules! define_fp2_from_type {
                 <$typename>::cond_swap(a, b, ctl)
             }
 
-            fn encode(self) -> [u8; Self::ENCODED_LENGTH] {
+            fn encode(self) -> Self::Encoded {
                 self.encode()
             }
             fn decode(buf: &[u8]) -> (Self, u32) {
@@ -1653,7 +1654,7 @@ macro_rules! define_fp2_from_type {
             fn set_pow_u64_vartime(&mut self, e: u64) {
                 self.set_pow_u64_vartime(e)
             }
-            fn set_pow_pubexp(&mut self, e: &[u64; <$Fp>::N]) {
+            fn set_pow_pubexp(&mut self, e: &[u64]) {
                 self.set_pow_pubexp(e)
             }
             fn pow(self, e: &[u8], ebitlen: usize) -> Self {
@@ -1668,7 +1669,7 @@ macro_rules! define_fp2_from_type {
             fn pow_u64_vartime(self, e: u64) -> Self {
                 self.pow_u64_vartime(e)
             }
-            fn pow_pubexp(self, e: &[u64; <$Fp>::N]) -> Self {
+            fn pow_pubexp(self, e: &[u64]) -> Self {
                 self.pow_pubexp(e)
             }
         }

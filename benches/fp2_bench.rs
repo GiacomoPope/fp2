@@ -84,15 +84,17 @@ macro_rules! define_fp2_benchmarks {
     };
 }
 
-mod bench_251 {
+mod bench_p308_644 {
     use criterion::{Criterion, black_box, criterion_group, criterion_main};
     use std::time::Duration;
 
-    static MODULUS: [u64; 4] = [
-        0xFFFFFFFFFFFFFFFF,
-        0xFFFFFFFFFFFFFFFF,
-        0xFFFFFFFFFFFFFFFF,
-        0x04FFFFFFFFFFFFFF,
+    // p308.644
+    static MODULUS: [u64; 5] = [
+        0xFFFF_FFFF_FFFF_FFFF,
+        0xFFFF_FFFF_FFFF_FFFF,
+        0xFFFF_FFFF_FFFF_FFFF,
+        0xFFFF_FFFF_FFFF_FFFF,
+        0x278F_FFFF_FFFF_FFFF,
     ];
 
     fp2::define_fp2_from_modulus!(typename = Fp2, base_typename = Fp, modulus = MODULUS,);
@@ -103,19 +105,20 @@ mod bench_251 {
     criterion_main!(fp_benchmarks, fp2_benchmarks);
 }
 
-mod bench_508 {
+mod bench_p474_593 {
     use criterion::{Criterion, black_box, criterion_group, criterion_main};
     use std::time::Duration;
 
+    // p474.593
     static MODULUS: [u64; 8] = [
-        0xFFFFFFFFFFFFFFFFu64,
-        0xFFFFFFFFFFFFFFFFu64,
-        0xFFFFFFFFFFFFFFFFu64,
-        0xFFFFFFFFFFFFFFFFu64,
-        0xFFFFFFFFFFFFFFFFu64,
-        0xFFFFFFFFFFFFFFFFu64,
-        0xFFFFFFFFFFFFFFFFu64,
-        0x107FFFFFFFFFFFFFu64,
+        0xFFFF_FFFF_FFFF_FFFF,
+        0xFFFF_FFFF_FFFF_FFFF,
+        0xFFFF_FFFF_FFFF_FFFF,
+        0xFFFF_FFFF_FFFF_FFFF,
+        0xFFFF_FFFF_FFFF_FFFF,
+        0xFFFF_FFFF_FFFF_FFFF,
+        0xFFFF_FFFF_FFFF_FFFF,
+        0x0000_0009_43FF_FFFF,
     ];
 
     fp2::define_fp2_from_modulus!(typename = Fp2, base_typename = Fp, modulus = MODULUS,);
@@ -126,96 +129,22 @@ mod bench_508 {
     criterion_main!(fp_benchmarks, fp2_benchmarks);
 }
 
-mod bench_896 {
+mod bench_p628_317 {
     use criterion::{Criterion, black_box, criterion_group, criterion_main};
     use std::time::Duration;
 
-    static MODULUS: [u64; 14] = [
-        0xFFFFFFFFFFFFFFFF,
-        0xFFFFFFFFFFFFFFFF,
-        0xFFFFFFFFFFFFFFFF,
-        0xFFFFFFFFFFFFFFFF,
-        0xFFFFFFFFFFFFFFFF,
-        0xFFFFFFFFFFFFFFFF,
-        0xFFFFFFFFFFFFFFFF,
-        0xFFFFFFFFFFFFFFFF,
-        0xFFFFFFFFFFFFFFFF,
-        0xFFFFFFFFFFFFFFFF,
-        0xFFFFFFFFFFFFFFFF,
-        0xFFFFFFFFFFFFFFFF,
-        0xFFFFFFFFFFFFFFFF,
-        0xA7FFFFFFFFFFFFFF,
-    ];
-
-    fp2::define_fp2_from_modulus!(typename = Fp2, base_typename = Fp, modulus = MODULUS,);
-
-    define_fp_benchmarks!(Fp);
-    define_fp2_benchmarks!(Fp2);
-
-    criterion_main!(fp_benchmarks, fp2_benchmarks);
-}
-
-mod bench_1008 {
-    use criterion::{Criterion, black_box, criterion_group, criterion_main};
-    use std::time::Duration;
-
-    static MODULUS: [u64; 16] = [
-        0xFFFFFFFFFFFFFFFFu64,
-        0xFFFFFFFFFFFFFFFFu64,
-        0xFFFFFFFFFFFFFFFFu64,
-        0xFFFFFFFFFFFFFFFFu64,
-        0xFFFFFFFFFFFFFFFFu64,
-        0xFFFFFFFFFFFFFFFFu64,
-        0xFFFFFFFFFFFFFFFFu64,
-        0xFFFFFFFFFFFFFFFFu64,
-        0xFFFFFFFFFFFFFFFFu64,
-        0xFFFFFFFFFFFFFFFFu64,
-        0xFFFFFFFFFFFFFFFFu64,
-        0xFFFFFFFFFFFFFFFFu64,
-        0xFFFFFFFFFFFFFFFFu64,
-        0xFFFFFFFFFFFFFFFFu64,
-        0xFFFFFFFFFFFFFFFFu64,
-        0x0000EFFFFFFFFFFFu64,
-    ];
-
-    fp2::define_fp2_from_modulus!(typename = Fp2, base_typename = Fp, modulus = MODULUS,);
-
-    define_fp_benchmarks!(Fp);
-    define_fp2_benchmarks!(Fp2);
-
-    criterion_main!(fp_benchmarks, fp2_benchmarks);
-}
-
-mod bench_1554 {
-    use criterion::{Criterion, black_box, criterion_group, criterion_main};
-    use std::time::Duration;
-
-    static MODULUS: [u64; 25] = [
-        0xFFFFFFFFFFFFFFFFu64,
-        0xFFFFFFFFFFFFFFFFu64,
-        0xFFFFFFFFFFFFFFFFu64,
-        0xFFFFFFFFFFFFFFFFu64,
-        0xFFFFFFFFFFFFFFFFu64,
-        0xFFFFFFFFFFFFFFFFu64,
-        0xFFFFFFFFFFFFFFFFu64,
-        0xFFFFFFFFFFFFFFFFu64,
-        0xFFFFFFFFFFFFFFFFu64,
-        0xFFFFFFFFFFFFFFFFu64,
-        0xFFFFFFFFFFFFFFFFu64,
-        0xFFFFFFFFFFFFFFFFu64,
-        0xFFFFFFFFFFFFFFFFu64,
-        0xFFFFFFFFFFFFFFFFu64,
-        0xFFFFFFFFFFFFFFFFu64,
-        0xFFFFFFFFFFFFFFFFu64,
-        0xFFFFFFFFFFFFFFFFu64,
-        0xFFFFFFFFFFFFFFFFu64,
-        0xFFFFFFFFFFFFFFFFu64,
-        0xFFFFFFFFFFFFFFFFu64,
-        0xFFFFFFFFFFFFFFFFu64,
-        0xFFFFFFFFFFFFFFFFu64,
-        0xFFFFFFFFFFFFFFFFu64,
-        0xFFFFFFFFFFFFFFFFu64,
-        0x0000000000047FFFu64,
+    // p628.317
+    static MODULUS: [u64; 10] = [
+        0xFFFF_FFFF_FFFF_FFFF,
+        0xFFFF_FFFF_FFFF_FFFF,
+        0xFFFF_FFFF_FFFF_FFFF,
+        0xFFFF_FFFF_FFFF_FFFF,
+        0xFFFF_FFFF_FFFF_FFFF,
+        0xFFFF_FFFF_FFFF_FFFF,
+        0xFFFF_FFFF_FFFF_FFFF,
+        0xFFFF_FFFF_FFFF_FFFF,
+        0xFFFF_FFFF_FFFF_FFFF,
+        0x13CF_FFFF_FFFF_FFFF,
     ];
 
     fp2::define_fp2_from_modulus!(typename = Fp2, base_typename = Fp, modulus = MODULUS,);
@@ -227,18 +156,12 @@ mod bench_1554 {
 }
 
 fn main() {
-    bench_251::fp_benchmarks();
-    bench_251::fp2_benchmarks();
+    bench_p308_644::fp_benchmarks();
+    bench_p308_644::fp2_benchmarks();
 
-    bench_508::fp_benchmarks();
-    bench_508::fp2_benchmarks();
+    bench_p474_593::fp_benchmarks();
+    bench_p474_593::fp2_benchmarks();
 
-    bench_896::fp_benchmarks();
-    bench_896::fp2_benchmarks();
-
-    bench_1008::fp_benchmarks();
-    bench_1008::fp2_benchmarks();
-
-    bench_1554::fp_benchmarks();
-    bench_1554::fp2_benchmarks();
+    bench_p628_317::fp_benchmarks();
+    bench_p628_317::fp2_benchmarks();
 }
