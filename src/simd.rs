@@ -1,13 +1,17 @@
 //! Four-way finite-field arithmetic over a `fearless_simd` backend.
 //!
-//! The radix-32 backend uses the scalar field's Montgomery radix, so packing
-//! performs no representation change.
+//! On AArch64 NEON and x86-64 AVX2, supported sparse moduli use an unsaturated Montgomery radix,
+//! with conversion at pack/unpack boundaries. Unsupported configurations use
+//! the radix-32 packed context, and unavailable SIMD levels use serial execution.
+
 use core::marker::PhantomData;
 
 use crate::packed::{PackedOperation, Serial};
 use crate::traits::Fq;
 
 mod radix32;
+
+mod unsaturated;
 
 #[cfg(test)]
 mod tests;
@@ -24,10 +28,18 @@ pub fn dispatch<F: MontgomeryField, O: PackedOperation<F>, const L: usize, const
 }
 
 /// Runs a packed computation at the given SIMD level, with serial fallback.
+///
+/// The unsaturated backend gets first choice on its supported NEON and AVX2 layouts.
+/// All other levels and configurations use the radix-32 backend when available,
+/// with serial arithmetic as the final fallback.
 fn dispatch_at<F: MontgomeryField, O: PackedOperation<F>, const L: usize, const LOW: usize>(
     level: fearless_simd::Level,
     operation: O,
 ) -> O::Output {
+    let operation = match unsaturated::dispatch::<F, O, L, LOW>(level, operation) {
+        Ok(output) => return output,
+        Err(operation) => operation,
+    };
     if level.is_fallback() {
         return operation.run(Serial::<F>::new());
     }
