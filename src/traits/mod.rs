@@ -189,6 +189,16 @@ pub trait Fq:
 
     /// Get the "hash" of the value (low 64 bits of the Montgomery representation)
     fn hashcode(self) -> u64;
+
+    /// Runs a [`PackedOperation`](crate::packed::PackedOperation) once, returning its result.
+    ///
+    /// The default uses serial field operations. With `simd` enabled, generated
+    /// prime fields select a supported SIMD backend, falling back to serial
+    /// operations when the CPU or modulus is unsupported.
+    #[inline]
+    fn with_packed<O: crate::packed::PackedOperation<Self>>(operation: O) -> O::Output {
+        operation.run(crate::packed::Serial::<Self>::new())
+    }
 }
 
 /// Specialised methods for computing roots in a finite field, currently only holds

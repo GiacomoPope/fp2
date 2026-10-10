@@ -47,6 +47,36 @@ fp2::define_fp2_from_type!(
 
 The easiest way to generate macro parameters is to generate the above code snippets with the sage file [`scripts/gen_fp.sage`](scripts/gen_fp.sage).
 
+### Packed arithmetic
+
+`packed::PackedField` provides four-lane arithmetic. `Fq::with_packed` runs a
+`PackedOperation` with the selected backend; its default uses scalar operations
+and needs no additional field trait.
+
+The optional `simd` feature accelerates supported generated prime fields;
+unsupported fields and CPUs continue to use serial arithmetic. `simd` requires
+Rust 1.89.
+
+```rust
+use fp2::packed::{PackedField, PackedOperation};
+use fp2::traits::Fq;
+
+struct Products<F>([F; 4], [F; 4]);
+impl<F: Fq> PackedOperation<F> for Products<F> {
+    type Output = [F; 4];
+    fn run<C: PackedField<Scalar = F>>(self, ctx: C) -> Self::Output {
+        ctx.vectorize(|| ctx.unpack(&ctx.mul(&ctx.pack(self.0), &ctx.pack(self.1))))
+    }
+}
+
+fn products<F: Fq>(a: [F; 4], b: [F; 4]) -> [F; 4] {
+    F::with_packed(Products(a, b))
+}
+```
+
+The SIMD backend requires a low radix-32 modulus digit of `0xffffffff`, a nonzero
+top digit, and `p < R/4`, where `R = 2^(64*N)`. Operations are constant-time with
+respect to field values.
 
 ### Tests
 

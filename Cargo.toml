@@ -14,8 +14,17 @@ repository = "https://github.com/GiacomoPope/fp2/"
 default = ["test-utils"]
 test-utils = []
 
+# Four-way field arithmetic. Requires Rust 1.89.
+simd = ["dep:fearless_simd"]
+
+# Exercises the packed arithmetic with a forced scalar backend in tests.
+test-simd-fallback = ["simd", "fearless_simd/force_support_fallback"]
+
 [dependencies]
 rand_core = "0.9"
+
+# SIMD backend
+fearless_simd = { version = "1.1", optional = true }
 
 [dev-dependencies]
 criterion = { version = "0.5" }
