@@ -22,7 +22,7 @@ pub(super) unsafe fn multiply<const K: usize, const W: usize, const SQUARE: bool
 ) -> [__m128i; K] {
     const {
         assert!(matches!(K, 11 | 14 | 17 | 20 | 24 | 27));
-        assert!(matches!(W, 27 | 28 | 29 | 30));
+        assert!(matches!(W, 27..=30));
         assert!(W != 30 || K == 11);
     }
 
@@ -57,6 +57,10 @@ pub(super) unsafe fn multiply<const K: usize, const W: usize, const SQUARE: bool
 
                 macro_rules! term {
                     ($i:literal) => {
+                        // We intentionally generate branches with conditionals that
+                        // evaluate to constant expressions, so the compiler can drop
+                        // branches inapplicable to the given `(K, column, term)`.
+                        #[allow(clippy::int_plus_one)]
                         if $i < K && $i <= $col && $col - $i < K && (!SQUARE || $i <= $col - $i) {
                             let j = $col - $i;
                             let product = _mm256_mul_epu32(aa[$i], bb[j]);

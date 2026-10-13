@@ -1,6 +1,6 @@
 use core::marker::PhantomData;
 
-use fearless_simd::{Simd, prelude::*, u32x4};
+use fearless_simd::{Simd, u32x4};
 
 use super::*;
 use crate::packed::{PackedField, PackedOperation};

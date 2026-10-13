@@ -316,9 +316,9 @@ impl<F: MontgomeryField, S: Simd, const L: usize, const LOW: usize, const K: usi
         let mask = O::splat((1u32 << W) - 1);
         let mut borrow = O::zero();
         let mut diff = self.zero();
-        for i in 0..K {
+        for (i, modulus_limb) in modulus.iter().enumerate() {
             let digit = O::from_u32x4(value.limbs[i]);
-            let z = O::sub(O::sub(digit, O::splat(modulus[i])), borrow);
+            let z = O::sub(O::sub(digit, O::splat(*modulus_limb)), borrow);
             diff.limbs[i] = O::to_u32x4(self.simd, O::and(z, mask));
             borrow = O::borrow(z);
         }
