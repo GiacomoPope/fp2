@@ -18,6 +18,80 @@
 //! - <https://github.com/GiacomoPope/cubical-pairings>
 //! - <https://github.com/GiacomoPope/ThetaCGL>
 
+/// Implements the Montgomery conversion bridge for a generated prime field.
+#[doc(hidden)]
+#[cfg(feature = "simd")]
+#[macro_export]
+macro_rules! __define_fp_simd {
+    ($typename:ident, $modulus:expr) => {
+        impl $crate::__private::MontgomeryField for $typename {
+            const MODULUS: &'static [u64] = &Self::MODULUS;
+
+            #[inline(always)]
+            fn write_montgomery_digits(self, digits: &mut [u32]) {
+                assert_eq!(digits.len(), 2 * Self::N);
+                for (i, &word) in self.0.iter().enumerate() {
+                    digits[2 * i] = word as u32;
+                    digits[2 * i + 1] = (word >> 32) as u32;
+                }
+            }
+
+            #[inline(always)]
+            fn from_montgomery_digits(
+                digits: $crate::__private::MontgomeryDigits<'_, Self>,
+            ) -> Self {
+                let digits = digits.as_slice();
+                assert_eq!(digits.len(), 2 * Self::N);
+                Self(::core::array::from_fn(|i| {
+                    u64::from(digits[2 * i]) | (u64::from(digits[2 * i + 1]) << 32)
+                }))
+            }
+        }
+    };
+}
+
+/// Omits the generated field's SIMD bridge when the feature is disabled.
+#[doc(hidden)]
+#[cfg(not(feature = "simd"))]
+#[macro_export]
+macro_rules! __define_fp_simd {
+    ($typename:ident, $modulus:expr) => {};
+}
+
+/// Dispatches a generated field's packed operation using its modulus parameters.
+#[doc(hidden)]
+#[cfg(feature = "simd")]
+#[macro_export]
+macro_rules! __with_packed {
+    ($typename:ident, $modulus:expr, $operation:ident) => {
+        $crate::__private::dispatch::<
+            $typename,
+            _,
+            { 2 * $typename::N },
+            {
+                let modulus: &[u64] = &$modulus;
+                let mut i = 0;
+                while i < 2 * modulus.len()
+                    && ((modulus[i / 2] >> (32 * (i % 2))) as u32) == u32::MAX
+                {
+                    i += 1;
+                }
+                i
+            },
+        >($operation)
+    };
+}
+
+/// Dispatches a generated field's packed operation to serial arithmetic.
+#[doc(hidden)]
+#[cfg(not(feature = "simd"))]
+#[macro_export]
+macro_rules! __with_packed {
+    ($typename:ident, $modulus:expr, $operation:ident) => {
+        $crate::__private::dispatch::<$typename, _>($operation)
+    };
+}
+
 /// A macro to define the finite field Fp, all functions are designed to run in
 /// constant time. Assumes that the characteristic is p = 3 mod 4.
 ///
@@ -133,6 +207,10 @@ macro_rules! define_fp_core {
             pub const FOUR: Self = Self::const_small(4);
             pub const MINUS_ONE: Self = Self::const_neg(Self::R);
 
+            /// Constructs a field element from little-endian Montgomery limbs.
+            ///
+            /// The input must represent `x*R mod p`, with `R = 2^(64*N)`, and
+            /// must be below `MODULUS`. No reduction or conversion is performed.
             pub const fn new(input: [u64; Self::N]) -> Self {
                 return Self(input);
             }
@@ -2529,6 +2607,11 @@ macro_rules! define_fp_core {
             fn hashcode(self) -> u64 {
                 self.hashcode()
             }
+
+            #[inline]
+            fn with_packed<O: $crate::packed::PackedOperation<Self>>(operation: O) -> O::Output {
+                $crate::__with_packed!($typename, $modulus, operation)
+            }
         }
 
         impl $crate::traits::FqRoots for $typename {
@@ -2586,5 +2669,7 @@ macro_rules! define_fp_core {
                 <$typename>::rand(rng)
             }
         }
+
+        $crate::__define_fp_simd!($typename, $modulus);
     };
 } // End of macro: define_fp_core
